@@ -59,6 +59,13 @@ export async function handleRedditActions (event: ScheduledJobEvent, context: Tr
         limit: 100,
     }).all();
 
+    modLog.push(...await context.reddit.getModerationLog({
+        subredditName,
+        moderatorUsernames: ["reddit"],
+        type: "removelink",
+        limit: 100,
+    }).all());
+
     const modLogFiltered = modLog.filter(x => x.description?.toLowerCase().includes("ban evasion") && x.target?.id === targetId);
 
     if (modLogFiltered.length === 0) {
