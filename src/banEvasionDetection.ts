@@ -21,7 +21,7 @@ export async function handleModAction (event: ModAction, context: TriggerContext
             return;
         }
 
-        console.log(`${targetId}: Detected a ${event.action} action from reddit. Queueing job for Reddit action checks.`);
+        console.log(`${targetId}: Detected a ${event.action} action from reddit.`);
 
         await context.scheduler.runJob({
             name: "handleRedditActions",
