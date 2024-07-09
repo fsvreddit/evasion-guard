@@ -2,74 +2,70 @@ import {ScheduledJobEvent, TriggerContext} from "@devvit/public-api";
 import {ModAction} from "@devvit/protos";
 import {addSeconds, subDays} from "date-fns";
 import {Setting} from "./settings.js";
-import {getPostOrCommentById} from "./utility.js";
+import {ThingPrefix, getPostOrCommentById} from "./utility.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
-    if (!event.action || !event.moderator) {
+    if (event.action !== "removecomment" && event.action !== "removelink") {
         return;
     }
 
-    if ((event.action === "removecomment" || event.action === "removelink") && event.moderator.name === "reddit") {
-        let targetId: string | undefined;
-        if (event.action === "removecomment") {
-            targetId = event.targetComment?.id;
-        } else if (event.action === "removelink") {
-            targetId = event.targetPost?.id;
-        }
-
-        if (!targetId) {
-            return;
-        }
-
-        console.log(`${targetId}: Detected a ${event.action} action from reddit.`);
-
-        await context.scheduler.runJob({
-            name: "handleRedditActions",
-            data: {targetId},
-            runAt: addSeconds(new Date(), 10), // 10 seconds to give async updates time to finish.
-        });
+    if (event.moderator?.name !== "reddit") {
+        return;
     }
+
+    if (!event.subreddit) {
+        return;
+    }
+
+    let targetId: string | undefined;
+    if (event.action === "removecomment") {
+        targetId = event.targetComment?.id;
+    } else if (event.action === "removelink") {
+        targetId = event.targetPost?.id;
+    }
+
+    if (!targetId) {
+        return;
+    }
+
+    console.log(`${targetId}: Detected a ${event.action} action from reddit.`);
+
+    await context.scheduler.runJob({
+        name: "handleRedditActions",
+        data: {
+            targetId,
+            subredditName: event.subreddit.name,
+        },
+        runAt: addSeconds(new Date(), 10), // 10 seconds to give async updates time to finish.
+    });
 }
 
 export async function handleRedditActions (event: ScheduledJobEvent, context: TriggerContext) {
-    if (!event.data) {
-        return;
-    }
+    const targetId = event.data?.targetId as string | undefined;
+    const subredditName = event.data?.subredditName as string | undefined;
 
-    const targetId = event.data.targetId as string | undefined;
-    if (!targetId) {
+    if (!targetId || !subredditName) {
         return;
     }
 
     const settings = await context.settings.getAll();
 
-    const banEvasionBanUsers = settings[Setting.BanUser] as boolean ?? false;
-    const banEvasionRemoveContent = settings[Setting.RemoveContent] as boolean ?? true;
+    const actionBanUser = settings[Setting.BanUser] as boolean ?? false;
+    const actionRemoveContent = settings[Setting.RemoveContent] as boolean ?? true;
 
-    if (!banEvasionBanUsers && !banEvasionRemoveContent) {
+    if (!actionBanUser && !actionRemoveContent) {
         return;
     }
-
-    const subredditName = (await context.reddit.getCurrentSubreddit()).name;
 
     const modLog = await context.reddit.getModerationLog({
         subredditName,
         moderatorUsernames: ["reddit"],
-        type: "removecomment",
+        type: targetId.startsWith(ThingPrefix.Comment) ? "removecomment" : "removelink",
         limit: 100,
     }).all();
 
-    modLog.push(...await context.reddit.getModerationLog({
-        subredditName,
-        moderatorUsernames: ["reddit"],
-        type: "removelink",
-        limit: 100,
-    }).all());
-
-    const modLogFiltered = modLog.filter(x => x.description?.toLowerCase().includes("ban evasion") && x.target?.id === targetId);
-
-    if (modLogFiltered.length === 0) {
-        console.log(`${targetId}: Not a Ban Evasion report`);
+    if (!modLog.some(x => x.description?.toLowerCase().includes("ban evasion") && x.target?.id === targetId)) {
+        console.log(`${targetId}: No ban evasion filter event.`);
         return;
     }
 
@@ -88,7 +84,7 @@ export async function handleRedditActions (event: ScheduledJobEvent, context: Tr
 
     const promises: Promise<void>[] = [];
 
-    if (banEvasionBanUsers) {
+    if (actionBanUser) {
         const banMessage = settings[Setting.BanMessage] as string ?? "Ban evasion";
         promises.push(context.reddit.banUser({
             subredditName,
@@ -99,7 +95,7 @@ export async function handleRedditActions (event: ScheduledJobEvent, context: Tr
         console.log(`${targetId}: ${target.authorName} has been banned.`);
     }
 
-    if (banEvasionRemoveContent) {
+    if (actionRemoveContent) {
         promises.push(target.remove());
         console.log(`${targetId}: ${target.authorName}'s post or comment has been removed.`);
     }
