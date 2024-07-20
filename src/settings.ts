@@ -2,6 +2,7 @@ import {SettingsFormField} from "@devvit/public-api";
 
 export enum Setting {
     BanUser = "banEvasionBanUsers",
+    BanReason = "banReason",
     BanMessage = "banMessage",
     RemoveContent = "banEvasionRemoveContent",
 }
@@ -15,8 +16,15 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
     },
     {
         type: "string",
+        name: Setting.BanReason,
+        label: "Ban reason (visible on 'banned users' page)",
+        defaultValue: "Ban evasion",
+    },
+    {
+        type: "string",
         name: Setting.BanMessage,
         label: "Ban message to send to user",
+        helpText: "Supports placeholder: {{username}}",
         defaultValue: "Ban evasion",
     },
     {

@@ -2,7 +2,7 @@ import {ScheduledJobEvent, TriggerContext} from "@devvit/public-api";
 import {ModAction} from "@devvit/protos";
 import {addSeconds, subDays} from "date-fns";
 import {Setting} from "./settings.js";
-import {ThingPrefix, getPostOrCommentById} from "./utility.js";
+import {ThingPrefix, getPostOrCommentById, replaceAll} from "./utility.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     if (event.action !== "removecomment" && event.action !== "removelink") {
@@ -85,12 +85,19 @@ export async function handleRedditActions (event: ScheduledJobEvent, context: Tr
     const promises: Promise<void>[] = [];
 
     if (actionBanUser) {
-        const banMessage = settings[Setting.BanMessage] as string ?? "Ban evasion";
+        const banReason = settings[Setting.BanMessage] as string ?? "Ban evasion";
+        let banMessage = settings[Setting.BanMessage] as string | undefined;
+        if (!banMessage) {
+            banMessage = undefined;
+        } else {
+            banMessage = replaceAll(banMessage, "{{username}}", target.authorName);
+        }
+
         promises.push(context.reddit.banUser({
             subredditName,
             username: target.authorName,
             message: banMessage,
-            note: banMessage,
+            note: banReason,
         }));
         console.log(`${targetId}: ${target.authorName} has been banned.`);
     }
