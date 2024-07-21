@@ -8,3 +8,10 @@ If the user has been recently unbanned from the subreddit, they will not be bann
 
 This app is open source. You can find the source on Github [here](https://github.com/fsvreddit/evasion-guard).
 
+## Change log
+
+v1.1
+
+* Separate out ban reason and ban message
+* Add {{username}} and {{permalink}} placeholders on ban message
+* Add ability to set a maximum account age to automate actions on

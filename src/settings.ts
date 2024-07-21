@@ -48,7 +48,7 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         name: Setting.ActionThresholdValue,
         label: "Max account age",
         helpText: "This app will only take action on users younger than this age. Set to 0 to take action at any age.",
-        defaultValue: 0
+        defaultValue: 0,
     },
     {
         type: "select",
@@ -57,5 +57,5 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         options: Object.entries(DateUnit).map(([label, value]) => ({label, value})),
         multiSelect: false,
         defaultValue: [DateUnit.Day],
-    }
+    },
 ];
