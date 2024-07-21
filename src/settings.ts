@@ -33,7 +33,7 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         type: "string",
         name: Setting.BanMessage,
         label: "Ban message to send to user",
-        helpText: "Supports placeholder: {{username}}",
+        helpText: "Supports placeholders: {{username}}, {{permalink}}",
         defaultValue: "Ban evasion",
     },
     {

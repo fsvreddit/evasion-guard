@@ -103,6 +103,7 @@ export async function handleRedditActions (event: ScheduledJobEvent, context: Tr
             banMessage = undefined;
         } else {
             banMessage = replaceAll(banMessage, "{{username}}", target.authorName);
+            banMessage = replaceAll(banMessage, "{{permalink}}", target.permalink);
         }
 
         promises.push(context.reddit.banUser({
