@@ -1,7 +1,7 @@
 import {ScheduledJobEvent, TriggerContext} from "@devvit/public-api";
 import {ModAction} from "@devvit/protos";
-import {addSeconds, subDays} from "date-fns";
-import {Setting} from "./settings.js";
+import {addSeconds, subDays, subMonths, subWeeks, subYears} from "date-fns";
+import {DateUnit, Setting} from "./settings.js";
 import {ThingPrefix, getPostOrCommentById, replaceAll} from "./utility.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
@@ -82,10 +82,22 @@ export async function handleRedditActions (event: ScheduledJobEvent, context: Tr
         return;
     }
 
+    const actionThresholdValue = settings[Setting.ActionThresholdValue] as number;
+    const [actionThresholdUnit] = settings[Setting.ActionThresholdUnit] as string[];
+
+    if (actionThresholdValue && target.authorId) {
+        const user = await context.reddit.getUserById(target.authorId);
+        const minimumAge = getMinimumAge(actionThresholdValue, actionThresholdUnit as DateUnit);
+        if (user.createdAt < minimumAge) {
+            console.log(`${targetId}: User ${target.authorName} is too old to take action on.`);
+            return;
+        }
+    }
+
     const promises: Promise<void>[] = [];
 
     if (actionBanUser) {
-        const banReason = settings[Setting.BanMessage] as string ?? "Ban evasion";
+        const banReason = settings[Setting.BanReason] as string ?? "Ban evasion";
         let banMessage = settings[Setting.BanMessage] as string | undefined;
         if (!banMessage) {
             banMessage = undefined;
@@ -108,4 +120,17 @@ export async function handleRedditActions (event: ScheduledJobEvent, context: Tr
     }
 
     await Promise.all(promises);
+}
+
+function getMinimumAge (thresholdValue: number, thresholdUnit: DateUnit) {
+    switch (thresholdUnit) {
+        case DateUnit.Day:
+            return subDays(new Date(), thresholdValue);
+        case DateUnit.Week:
+            return subWeeks(new Date(), thresholdValue);
+        case DateUnit.Month:
+            return subMonths(new Date(), thresholdValue);
+        case DateUnit.Year:
+            return subYears(new Date(), thresholdValue);
+    }
 }

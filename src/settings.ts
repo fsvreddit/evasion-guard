@@ -5,6 +5,15 @@ export enum Setting {
     BanReason = "banReason",
     BanMessage = "banMessage",
     RemoveContent = "banEvasionRemoveContent",
+    ActionThresholdValue = "actionThresholdValue",
+    ActionThresholdUnit = "actionThresholdUnit",
+}
+
+export enum DateUnit {
+    Day = "day",
+    Week = "week",
+    Month = "month",
+    Year = "year",
 }
 
 export const settingsForBanEvasionHandling: SettingsFormField[] = [
@@ -34,4 +43,19 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         helpText: "Only the comment or post that triggered the Ban Evasion detection will be removed.",
         defaultValue: true,
     },
+    {
+        type: "number",
+        name: Setting.ActionThresholdValue,
+        label: "Max account age",
+        helpText: "This app will only take action on users younger than this age. Set to 0 to take action at any age.",
+        defaultValue: 0
+    },
+    {
+        type: "select",
+        name: Setting.ActionThresholdUnit,
+        label: "Max account age unit",
+        options: Object.entries(DateUnit).map(([label, value]) => ({label, value})),
+        multiSelect: false,
+        defaultValue: [DateUnit.Day],
+    }
 ];
