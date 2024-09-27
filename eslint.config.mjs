@@ -130,6 +130,6 @@ export default tseslint.config(
         },
     },
     {
-        ignores: ["**/node_modules", "**/dist", "eslint.config.mjs", "**/difflib"],
+        ignores: ["**/node_modules", "**/dist", "eslint.config.mjs"],
     },
 );
