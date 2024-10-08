@@ -10,6 +10,10 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+v1.1.6
+
+* Add option to automatically approve content for users flagged for ban evasion who have been recently unbanned.
+
 v1.1.5
 
 * Mitigate against duplicate triggers, preventing undesirable multiple bans

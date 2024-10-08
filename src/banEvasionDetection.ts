@@ -100,6 +100,10 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     const userPreviouslyUnbanned = await context.redis.get(`unbanned~${target.authorName}`);
     if (userPreviouslyUnbanned) {
         console.log(`${targetId}: User ${target.authorName} was recently unbanned so treating this as a false positive.`);
+        if (settings[Setting.AutoApproveAfterUnban]) {
+            await context.reddit.approve(targetId);
+            console.log(`${targetId}: Approved due to recent unban.`);
+        }
         return;
     }
 

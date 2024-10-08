@@ -7,6 +7,7 @@ export enum Setting {
     RemoveContent = "banEvasionRemoveContent",
     ActionThresholdValue = "actionThresholdValue",
     ActionThresholdUnit = "actionThresholdUnit",
+    AutoApproveAfterUnban = "autoApproveAfterUnban",
 }
 
 export enum DateUnit {
@@ -57,5 +58,12 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         options: Object.entries(DateUnit).map(([label, value]) => ({ label, value })),
         multiSelect: false,
         defaultValue: [DateUnit.Day],
+    },
+    {
+        type: "boolean",
+        name: Setting.AutoApproveAfterUnban,
+        label: "Auto-approve posts and comments after recent unban",
+        helpText: "Ban Evasion detections after recent unbans are likely false positives. Select this option to approve content flagged for ban evasion within a week of an unban action.",
+        defaultValue: false,
     },
 ];
