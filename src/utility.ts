@@ -1,18 +1,10 @@
 import { Comment, Post, TriggerContext } from "@devvit/public-api";
-
-export enum ThingPrefix {
-    Comment = "t1_",
-    Account = "t2_",
-    Post = "t3_",
-    Message = "t4_",
-    Subreddit = "t5_",
-    Award = "t6_",
-}
+import { isCommentId, isLinkId } from "@devvit/shared-types/tid.js";
 
 export function getPostOrCommentById (thingId: string, context: TriggerContext): Promise<Post | Comment> {
-    if (thingId.startsWith(ThingPrefix.Comment)) {
+    if (isCommentId(thingId)) {
         return context.reddit.getCommentById(thingId);
-    } else if (thingId.startsWith(ThingPrefix.Post)) {
+    } else if (isLinkId(thingId)) {
         return context.reddit.getPostById(thingId);
     } else {
         throw new Error(`Invalid thingId ${thingId}`);

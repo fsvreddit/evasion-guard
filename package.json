@@ -6,6 +6,7 @@
   "type": "module",
   "dependencies": {
     "@devvit/public-api": "0.11.0-next-2024-10-07-02dcca49e.0",
+    "@devvit/shared-types": "^0.11.0-next-2024-10-07-02dcca49e.0",
     "date-fns": "^4.0.0"
   },
   "devDependencies": {

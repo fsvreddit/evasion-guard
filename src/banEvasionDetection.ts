@@ -1,8 +1,9 @@
 import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
 import { ModAction } from "@devvit/protos";
+import { isCommentId } from "@devvit/shared-types/tid.js";
 import { addDays, addHours, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
 import { DateUnit, Setting } from "./settings.js";
-import { ThingPrefix, getPostOrCommentById, replaceAll } from "./utility.js";
+import { getPostOrCommentById, replaceAll } from "./utility.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     if (event.action === "removecomment" || event.action === "removelink") {
@@ -85,7 +86,7 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     const modLog = await context.reddit.getModerationLog({
         subredditName,
         moderatorUsernames: ["reddit"],
-        type: targetId.startsWith(ThingPrefix.Comment) ? "removecomment" : "removelink",
+        type: isCommentId(targetId) ? "removecomment" : "removelink",
         limit: 100,
     }).all();
 
