@@ -1,9 +1,9 @@
 // Visit developers.reddit.com/docs to learn Devvit!
 
-import {Devvit} from "@devvit/public-api";
-import {handleModAction, handleRedditActions} from "./banEvasionDetection.js";
-import {settingsForBanEvasionHandling} from "./settings.js";
-import {handleInstallEvents} from "./installEvents.js";
+import { Devvit } from "@devvit/public-api";
+import { handleModAction, handleRedditActions } from "./banEvasionDetection.js";
+import { settingsForBanEvasionHandling } from "./settings.js";
+import { handleInstallEvents } from "./installEvents.js";
 
 Devvit.addSettings(settingsForBanEvasionHandling);
 

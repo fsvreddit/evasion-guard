@@ -1,4 +1,4 @@
-import {Comment, Post, TriggerContext} from "@devvit/public-api";
+import { Comment, Post, TriggerContext } from "@devvit/public-api";
 
 export enum ThingPrefix {
     Comment = "t1_",
@@ -6,7 +6,7 @@ export enum ThingPrefix {
     Post = "t3_",
     Message = "t4_",
     Subreddit = "t5_",
-    Award = "t6_"
+    Award = "t6_",
 }
 
 export function getPostOrCommentById (thingId: string, context: TriggerContext): Promise<Post | Comment> {

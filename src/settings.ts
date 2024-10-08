@@ -1,4 +1,4 @@
-import {SettingsFormField} from "@devvit/public-api";
+import { SettingsFormField } from "@devvit/public-api";
 
 export enum Setting {
     BanUser = "banEvasionBanUsers",
@@ -54,7 +54,7 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         type: "select",
         name: Setting.ActionThresholdUnit,
         label: "Max account age unit",
-        options: Object.entries(DateUnit).map(([label, value]) => ({label, value})),
+        options: Object.entries(DateUnit).map(([label, value]) => ({ label, value })),
         multiSelect: false,
         defaultValue: [DateUnit.Day],
     },

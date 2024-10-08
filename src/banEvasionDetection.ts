@@ -1,8 +1,8 @@
-import {ScheduledJobEvent, TriggerContext, User} from "@devvit/public-api";
-import {ModAction} from "@devvit/protos";
-import {addDays, addHours, addSeconds, subDays, subMonths, subWeeks, subYears} from "date-fns";
-import {DateUnit, Setting} from "./settings.js";
-import {ThingPrefix, getPostOrCommentById, replaceAll} from "./utility.js";
+import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
+import { ModAction } from "@devvit/protos";
+import { addDays, addHours, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
+import { DateUnit, Setting } from "./settings.js";
+import { ThingPrefix, getPostOrCommentById, replaceAll } from "./utility.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     if (event.action === "removecomment" || event.action === "removelink") {
@@ -51,7 +51,7 @@ export async function handleRemoveItemAction (event: ModAction, context: Trigger
         runAt: addSeconds(new Date(), 10), // 10 seconds to give async updates time to finish.
     });
 
-    await context.redis.set(redisKey, "true", {expiration: addHours(new Date(), 1)});
+    await context.redis.set(redisKey, "true", { expiration: addHours(new Date(), 1) });
 }
 
 export async function handleUnbanAction (event: ModAction, context: TriggerContext) {
@@ -61,11 +61,11 @@ export async function handleUnbanAction (event: ModAction, context: TriggerConte
     }
 
     const unbanDate = event.actionedAt ?? new Date();
-    await context.redis.set(`unbanned~${targetUser}`, new Date().getTime().toString(), {expiration: addDays(unbanDate, 7)});
+    await context.redis.set(`unbanned~${targetUser}`, new Date().getTime().toString(), { expiration: addDays(unbanDate, 7) });
     console.log(`${targetUser}: User unbanned, setting Redis key.`);
 }
 
-export async function handleRedditActions (event: ScheduledJobEvent, context: TriggerContext) {
+export async function handleRedditActions (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
     const targetId = event.data?.targetId as string | undefined;
     const subredditName = event.data?.subredditName as string | undefined;
 
