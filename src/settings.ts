@@ -8,6 +8,9 @@ export enum Setting {
     ActionThresholdValue = "actionThresholdValue",
     ActionThresholdUnit = "actionThresholdUnit",
     AutoApproveAfterUnban = "autoApproveAfterUnban",
+    UsersToIgnore = "usersToIgnore",
+    IgnoreApprovedSubmitters = "ignoreApprovedUsers",
+    AutoIgnoreUsersAfterContentApproval = "ignoreAfterContentApproval",
 }
 
 export enum DateUnit {
@@ -64,6 +67,26 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         name: Setting.AutoApproveAfterUnban,
         label: "Auto-approve posts and comments after recent unban",
         helpText: "Ban Evasion detections after recent unbans are likely false positives. Select this option to approve content flagged for ban evasion within a week of an unban action.",
+        defaultValue: false,
+    },
+    {
+        type: "boolean",
+        name: Setting.IgnoreApprovedSubmitters,
+        label: "Ignore users who are approved submitters",
+        defaultValue: false,
+    },
+    {
+        type: "string",
+        name: Setting.UsersToIgnore,
+        label: "A list of named users to ignore",
+        helpText: "Comma separated, not case sensitive",
+        defaultValue: "",
+    },
+    {
+        type: "boolean",
+        name: Setting.AutoIgnoreUsersAfterContentApproval,
+        label: "Ignore and approve content from users who have had content flagged by this app re-approved",
+        helpText: "Only approves content specifically flagged for ban evasion, not content more generally",
         defaultValue: false,
     },
 ];

@@ -1,8 +1,21 @@
 import { AppInstall, AppUpgrade } from "@devvit/protos";
 import { TriggerContext } from "@devvit/public-api";
 import { addDays, subDays } from "date-fns";
+import { CLEANUP_CRON, CLEANUP_JOB } from "./constants.js";
+import { scheduleAdhocCleanup } from "./cleanupTasks.js";
 
 export async function handleInstallEvents (_: AppInstall | AppUpgrade, context: TriggerContext) {
+    // Find and remove jobs.
+    const existingJobs = await context.scheduler.listJobs();
+    await Promise.all(existingJobs.map(job => context.scheduler.cancelJob(job.id)));
+
+    await context.scheduler.runJob({
+        name: CLEANUP_JOB,
+        cron: CLEANUP_CRON,
+    });
+
+    await scheduleAdhocCleanup(context);
+
     const redisKey = "StoredRecentUnbans";
     const alreadyStored = await context.redis.get(redisKey);
 

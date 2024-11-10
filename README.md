@@ -10,16 +10,21 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
-v1.1.6
+### vNext
+
+* Add whitelisting functionality
+* Allow multi-line ban messages
+
+### v1.1.6
 
 * Add option to automatically approve content for users flagged for ban evasion who have been recently unbanned.
 
-v1.1.5
+### v1.1.5
 
 * Mitigate against duplicate triggers, preventing undesirable multiple bans
 * Make check for recent unbans more efficient
 
-v1.1.1
+### v1.1.1
 
 * Separate out ban reason and ban message
 * Add {{username}} and {{permalink}} placeholders on ban message
