@@ -10,7 +10,7 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
-### vNext
+### v1.2.1
 
 * Add whitelisting functionality
 * Allow multi-line ban messages
