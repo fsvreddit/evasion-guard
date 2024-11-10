@@ -5,9 +5,13 @@ export enum Setting {
     BanReason = "banReason",
     BanMessage = "banMessage",
     RemoveContent = "banEvasionRemoveContent",
+    RemovalMessage = "removalMessage",
     ActionThresholdValue = "actionThresholdValue",
     ActionThresholdUnit = "actionThresholdUnit",
     AutoApproveAfterUnban = "autoApproveAfterUnban",
+    UsersToIgnore = "usersToIgnore",
+    IgnoreApprovedSubmitters = "ignoreApprovedUsers",
+    AutoIgnoreUsersAfterContentApproval = "ignoreAfterContentApproval",
 }
 
 export enum DateUnit {
@@ -31,7 +35,7 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         defaultValue: "Ban evasion",
     },
     {
-        type: "string",
+        type: "paragraph",
         name: Setting.BanMessage,
         label: "Ban message to send to user",
         helpText: "Supports placeholders: {{username}}, {{permalink}}",
@@ -43,6 +47,12 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         label: "Remove content from users detected as evading bans",
         helpText: "Only the comment or post that triggered the Ban Evasion detection will be removed.",
         defaultValue: true,
+    },
+    {
+        type: "paragraph",
+        name: Setting.RemovalMessage,
+        label: "Removal message to reply to the content with",
+        helpText: "Removal messages will only be left if the above setting is turned on. Leave blank to disable.",
     },
     {
         type: "number",
@@ -64,6 +74,26 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         name: Setting.AutoApproveAfterUnban,
         label: "Auto-approve posts and comments after recent unban",
         helpText: "Ban Evasion detections after recent unbans are likely false positives. Select this option to approve content flagged for ban evasion within a week of an unban action.",
+        defaultValue: false,
+    },
+    {
+        type: "boolean",
+        name: Setting.IgnoreApprovedSubmitters,
+        label: "Ignore users who are approved submitters",
+        defaultValue: false,
+    },
+    {
+        type: "string",
+        name: Setting.UsersToIgnore,
+        label: "A list of named users to ignore",
+        helpText: "Comma separated, not case sensitive",
+        defaultValue: "",
+    },
+    {
+        type: "boolean",
+        name: Setting.AutoIgnoreUsersAfterContentApproval,
+        label: "Ignore and approve content from users who have had content flagged by this app re-approved",
+        helpText: "Only approves content specifically flagged for ban evasion, not content more generally",
         defaultValue: false,
     },
 ];
