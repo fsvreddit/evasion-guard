@@ -14,6 +14,7 @@ This app is open source. You can find the source on Github [here](https://github
 
 * Add whitelisting functionality
 * Allow multi-line ban messages
+* Add feature to leave removal messages in reply to users
 
 ### v1.1.6
 

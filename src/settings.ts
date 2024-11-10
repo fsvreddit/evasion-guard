@@ -5,6 +5,7 @@ export enum Setting {
     BanReason = "banReason",
     BanMessage = "banMessage",
     RemoveContent = "banEvasionRemoveContent",
+    RemovalMessage = "removalMessage",
     ActionThresholdValue = "actionThresholdValue",
     ActionThresholdUnit = "actionThresholdUnit",
     AutoApproveAfterUnban = "autoApproveAfterUnban",
@@ -46,6 +47,12 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         label: "Remove content from users detected as evading bans",
         helpText: "Only the comment or post that triggered the Ban Evasion detection will be removed.",
         defaultValue: true,
+    },
+    {
+        type: "paragraph",
+        name: Setting.RemovalMessage,
+        label: "Removal message to reply to the content with",
+        helpText: "Removal messages will only be left if the above setting is turned on. Leave blank to disable.",
     },
     {
         type: "number",

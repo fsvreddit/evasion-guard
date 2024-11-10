@@ -215,6 +215,14 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     if (actionRemoveContent) {
         promises.push(target.remove());
         console.log(`${targetId}: ${target.authorName}'s post or comment has been removed.`);
+
+        if (settings[Setting.RemovalMessage]) {
+            const newComment = await context.reddit.submitComment({
+                id: targetId,
+                text: settings[Setting.RemovalMessage] as string,
+            });
+            promises.push(newComment.lock(), newComment.distinguish());
+        }
     }
 
     promises.push(context.redis.set(`banevasiontarget~${targetId}`, new Date().getTime().toString(), { expiration: addMonths(new Date(), 3) }));
