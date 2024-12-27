@@ -8,6 +8,7 @@ export enum Setting {
     RemovalMessage = "removalMessage",
     ActionThresholdValue = "actionThresholdValue",
     ActionThresholdUnit = "actionThresholdUnit",
+    ModmailNotification = "modmailNotification",
     AutoApproveAfterUnban = "autoApproveAfterUnban",
     UsersToIgnore = "usersToIgnore",
     IgnoreApprovedSubmitters = "ignoreApprovedUsers",
@@ -19,6 +20,12 @@ export enum DateUnit {
     Week = "week",
     Month = "month",
     Year = "year",
+}
+
+export enum ModmailNotificationType {
+    None = "none",
+    Inbox = "inbox",
+    ModNotifications = "modNotifications",
 }
 
 export const settingsForBanEvasionHandling: SettingsFormField[] = [
@@ -68,6 +75,18 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         options: Object.entries(DateUnit).map(([label, value]) => ({ label, value })),
         multiSelect: false,
         defaultValue: [DateUnit.Day],
+    },
+    {
+        type: "select",
+        name: Setting.ModmailNotification,
+        label: "Send modmail notification",
+        options: [
+            { label: "No notification", value: ModmailNotificationType.None },
+            { label: "Inbox", value: ModmailNotificationType.Inbox },
+            { label: "Mod Notifications", value: ModmailNotificationType.ModNotifications },
+        ],
+        multiSelect: false,
+        defaultValue: [ModmailNotificationType.None],
     },
     {
         type: "boolean",

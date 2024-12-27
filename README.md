@@ -10,6 +10,10 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+### v1.2.2
+
+* Add function to send modmail when a user is detected for ban evasion
+
 ### v1.2.1
 
 * Add whitelisting functionality

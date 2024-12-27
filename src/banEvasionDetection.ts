@@ -2,7 +2,7 @@ import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/pub
 import { ModAction } from "@devvit/protos";
 import { isCommentId } from "@devvit/shared-types/tid.js";
 import { addDays, addHours, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
-import { DateUnit, Setting } from "./settings.js";
+import { DateUnit, ModmailNotificationType, Setting } from "./settings.js";
 import { getPostOrCommentById, replaceAll } from "./utility.js";
 import { DAYS_BETWEEN_CLEANUP, HANDLE_REDDIT_ACTIONS_JOB, WHITELISTED_USERS_KEY } from "./constants.js";
 
@@ -111,6 +111,7 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
 
     const actionBanUser = settings[Setting.BanUser] as boolean | undefined ?? false;
     const actionRemoveContent = settings[Setting.RemoveContent] as boolean | undefined ?? true;
+    const [actionSendModmail] = settings[Setting.ModmailNotification] as [ModmailNotificationType] | undefined ?? [ModmailNotificationType.None];
 
     if (!actionBanUser && !actionRemoveContent) {
         return;
@@ -222,6 +223,21 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
                 text: settings[Setting.RemovalMessage] as string,
             });
             promises.push(newComment.lock(), newComment.distinguish());
+        }
+    }
+
+    if (actionSendModmail !== ModmailNotificationType.None) {
+        const message = `${target.authorName} has been banned for suspected ban evasion from r/${target.subredditName}. [Permalink to content](${target.permalink})`;
+        const parameters = {
+            subject: "Ban evasion detected",
+            bodyMarkdown: message,
+            subredditId: context.subredditId,
+        };
+
+        if (actionSendModmail === ModmailNotificationType.Inbox) {
+            promises.push(context.reddit.modMail.createModInboxConversation(parameters));
+        } else {
+            promises.push(context.reddit.modMail.createModNotification(parameters));
         }
     }
 

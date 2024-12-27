@@ -5,8 +5,8 @@
   "license": "BSD-3-Clause",
   "type": "module",
   "dependencies": {
-    "@devvit/public-api": "0.11.2",
-    "@devvit/shared-types": "0.11.2",
+    "@devvit/public-api": "0.11.5",
+    "@devvit/shared-types": "0.11.5",
     "@types/pluralize": "^0.0.33",
     "cron-parser": "^4.9.0",
     "date-fns": "^4.0.0",
