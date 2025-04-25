@@ -2,7 +2,7 @@ import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, User } from 
 import { CLEANUP_CRON, CLEANUP_JOB, DAYS_BETWEEN_CLEANUP, WHITELISTED_USERS_KEY } from "./constants.js";
 import pluralize from "pluralize";
 import { addDays, addMinutes, subMinutes } from "date-fns";
-import { parseExpression } from "cron-parser";
+import { CronExpressionParser } from "cron-parser";
 
 async function userActive (username: string, context: TriggerContext): Promise<boolean> {
     let user: User | undefined;
@@ -87,7 +87,7 @@ export async function scheduleAdhocCleanup (context: TriggerContext) {
 
     const nextCleanupTime = new Date(nextEntries[0].score);
     const nextCleanupJobTime = addMinutes(nextCleanupTime, 5);
-    const nextScheduledTime = parseExpression(CLEANUP_CRON).next().toDate();
+    const nextScheduledTime = CronExpressionParser.parse(CLEANUP_CRON).next().toDate();
 
     if (nextCleanupJobTime < subMinutes(nextScheduledTime, 5)) {
         // It's worth running an ad-hoc job.
