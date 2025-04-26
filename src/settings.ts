@@ -43,7 +43,8 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
             {
                 type: "string",
                 name: Setting.BanReason,
-                label: "Ban reason (visible on 'banned users' page)",
+                label: "Ban reason (visible on 'banned users' page).",
+                helpText: "Supports {{permalink}} placeholder",
                 defaultValue: "Ban evasion",
             },
             {

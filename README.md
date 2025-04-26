@@ -13,6 +13,7 @@ This app is open source. You can find the source on Github [here](https://github
 ### Next
 
 * Add function to add mod note when a user is detected for ban evasion
+* Add {{permalink}} placeholder support for ban reason
 
 ### v1.2.2
 
