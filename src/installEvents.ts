@@ -17,15 +17,15 @@ export async function handleInstallEvents (_: AppInstall | AppUpgrade, context: 
     await scheduleAdhocCleanup(context);
 
     const redisKey = "StoredRecentUnbans";
-    const alreadyStored = await context.redis.get(redisKey);
+    const alreadyStored = await context.redis.exists(redisKey);
 
     if (alreadyStored) {
         return;
     }
 
-    const subreddit = await context.reddit.getCurrentSubreddit();
+    const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
     const recentUnbans = await context.reddit.getModerationLog({
-        subredditName: subreddit.name,
+        subredditName,
         type: "unbanuser",
         limit: 1000,
     }).all();
