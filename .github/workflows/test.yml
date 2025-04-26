@@ -14,3 +14,4 @@ jobs:
       - run: npx tsc --build
       - run: npx tsc --build --clean
       - run: npx eslint
+      - run: npm run test
