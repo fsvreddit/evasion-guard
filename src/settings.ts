@@ -4,6 +4,7 @@ export enum Setting {
     BanUser = "banEvasionBanUsers",
     BanReason = "banReason",
     BanMessage = "banMessage",
+    BanDuration = "banDuration",
     RemoveContent = "banEvasionRemoveContent",
     RemovalMessage = "removalMessage",
     ModmailNotification = "modmailNotification",
@@ -44,7 +45,7 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
                 type: "string",
                 name: Setting.BanReason,
                 label: "Ban reason (visible on 'banned users' page).",
-                helpText: "Supports {{permalink}} placeholder",
+                helpText: "Supports placeholder: {{permalink}}",
                 defaultValue: "Ban evasion",
             },
             {
@@ -53,6 +54,18 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
                 label: "Ban message to send to user",
                 helpText: "Supports placeholders: {{username}}, {{permalink}}",
                 defaultValue: "Ban evasion",
+            },
+            {
+                type: "number",
+                name: Setting.BanDuration,
+                label: "Ban duration (in days)",
+                helpText: "Set to 0 for a permanent ban.",
+                defaultValue: 0,
+                onValidate: ({ value }) => {
+                    if (value && (value < 0 || value > 999)) {
+                        return "Ban duration must be between 0 and 999 days";
+                    }
+                },
             },
         ],
     },

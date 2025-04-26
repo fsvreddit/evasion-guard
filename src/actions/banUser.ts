@@ -35,11 +35,15 @@ export class BanUserAction extends ActionBase {
             banMessage = replaceAll(banMessage, "{{permalink}}", this.shortenedPermalink(target.permalink));
         }
 
+        const durationSetting = this.settings[Setting.BanDuration] as number | undefined ?? 0;
+        const duration = durationSetting > 0 ? durationSetting : undefined;
+
         await this.context.reddit.banUser({
             subredditName: await this.subredditName(),
             username: target.authorName,
             message: banMessage,
             note: banReason,
+            duration,
         });
 
         console.log(`${target.id}: ${target.authorName} has been banned.`);
