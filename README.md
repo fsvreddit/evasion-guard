@@ -15,6 +15,7 @@ This app is open source. You can find the source on Github [here](https://github
 * Add function to add mod note when a user is detected for ban evasion
 * Add {{permalink}} placeholder support for ban reason
 * Add support for temporary bans
+* Fix an issue that prevented auto-allowlisting on approve from working
 
 ### v1.2.2
 
@@ -22,7 +23,7 @@ This app is open source. You can find the source on Github [here](https://github
 
 ### v1.2.1
 
-* Add whitelisting functionality
+* Add allowlisting functionality
 * Allow multi-line ban messages
 * Add feature to leave removal messages in reply to users
 

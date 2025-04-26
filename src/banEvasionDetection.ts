@@ -4,8 +4,9 @@ import { isCommentId } from "@devvit/shared-types/tid.js";
 import { addDays, addHours, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
 import { DateUnit, Setting } from "./settings.js";
 import { getPostOrCommentById } from "./utility.js";
-import { DAYS_BETWEEN_CLEANUP, HANDLE_REDDIT_ACTIONS_JOB, WHITELISTED_USERS_KEY } from "./constants.js";
+import { HANDLE_REDDIT_ACTIONS_JOB } from "./constants.js";
 import { ALL_ACTIONS } from "./actions/actions.js";
+import { isUserAllowlisted, setAllowListForUser } from "./cleanupTasks.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     switch (event.action) {
@@ -81,9 +82,9 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
     }
 
     let targetId: string | undefined;
-    if (event.action === "removecomment") {
+    if (event.action === "approvecomment") {
         targetId = event.targetComment?.id;
-    } else if (event.action === "removelink") {
+    } else if (event.action === "approvelink") {
         targetId = event.targetPost?.id;
     }
 
@@ -96,8 +97,8 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
         return;
     }
 
-    // Store in the whitelisted users set, with a score indicating next cleanup due.
-    await context.redis.zAdd(WHITELISTED_USERS_KEY, { member: authorName, score: addDays(new Date(), DAYS_BETWEEN_CLEANUP).getTime() });
+    // Store in the allowlisted users set, with a score indicating next cleanup due.
+    await setAllowListForUser(authorName, context);
 }
 
 export async function handleRedditActions (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
@@ -138,11 +139,11 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
 
     const target = await getPostOrCommentById(targetId, context);
 
-    const userWhitelist = settings[Setting.UsersToIgnore] as string | undefined ?? "";
-    const usersToIgnore = userWhitelist.split(",").map(username => username.toLowerCase().trim());
+    const userAllowList = settings[Setting.UsersToIgnore] as string | undefined ?? "";
+    const usersToIgnore = userAllowList.split(",").map(username => username.toLowerCase().trim());
 
     if (usersToIgnore.includes(target.authorName.toLowerCase())) {
-        console.log(`${targetId}: Author ${target.authorName} is whitelisted explicitly`);
+        console.log(`${targetId}: Author ${target.authorName} is allowlisted explicitly`);
         return;
     }
 
@@ -157,10 +158,11 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     }
 
     if (settings[Setting.AutoIgnoreUsersAfterContentApproval]) {
-        const userWhitelisted = await context.redis.zScore(WHITELISTED_USERS_KEY, target.authorName);
-        if (userWhitelisted) {
+        const userAllowlisted = await isUserAllowlisted(target.authorName, context);
+        if (userAllowlisted) {
             await context.reddit.approve(targetId);
-            console.log(`${targetId}: Author ${target.authorName} is whitelisted via prior approval`);
+            console.log(`${targetId}: Author ${target.authorName} is allowlisted
+                 via prior approval`);
             return;
         }
     }
