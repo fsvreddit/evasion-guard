@@ -9,7 +9,7 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/protos": "^0.11.13",
+    "@devvit/protos": "0.11.13",
     "@devvit/public-api": "0.11.13",
     "@devvit/shared-types": "0.11.13",
     "@types/pluralize": "^0.0.33",
