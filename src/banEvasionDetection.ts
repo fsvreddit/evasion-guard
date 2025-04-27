@@ -2,9 +2,11 @@ import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/pub
 import { ModAction } from "@devvit/protos";
 import { isCommentId } from "@devvit/shared-types/tid.js";
 import { addDays, addHours, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
-import { DateUnit, ModmailNotificationType, Setting } from "./settings.js";
-import { getPostOrCommentById, replaceAll } from "./utility.js";
-import { DAYS_BETWEEN_CLEANUP, HANDLE_REDDIT_ACTIONS_JOB, WHITELISTED_USERS_KEY } from "./constants.js";
+import { DateUnit, Setting } from "./settings.js";
+import { getPostOrCommentById } from "./utility.js";
+import { HANDLE_REDDIT_ACTIONS_JOB } from "./constants.js";
+import { ALL_ACTIONS } from "./actions/actions.js";
+import { isUserAllowlisted, setAllowListForUser } from "./cleanupTasks.js";
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     switch (event.action) {
@@ -80,9 +82,9 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
     }
 
     let targetId: string | undefined;
-    if (event.action === "removecomment") {
+    if (event.action === "approvecomment") {
         targetId = event.targetComment?.id;
-    } else if (event.action === "removelink") {
+    } else if (event.action === "approvelink") {
         targetId = event.targetPost?.id;
     }
 
@@ -95,8 +97,8 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
         return;
     }
 
-    // Store in the whitelisted users set, with a score indicating next cleanup due.
-    await context.redis.zAdd(WHITELISTED_USERS_KEY, { member: authorName, score: addDays(new Date(), DAYS_BETWEEN_CLEANUP).getTime() });
+    // Store in the allowlisted users set, with a score indicating next cleanup due.
+    await setAllowListForUser(authorName, context);
 }
 
 export async function handleRedditActions (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
@@ -109,11 +111,17 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
 
     const settings = await context.settings.getAll();
 
-    const actionBanUser = settings[Setting.BanUser] as boolean | undefined ?? false;
-    const actionRemoveContent = settings[Setting.RemoveContent] as boolean | undefined ?? true;
-    const [actionSendModmail] = settings[Setting.ModmailNotification] as [ModmailNotificationType] | undefined ?? [ModmailNotificationType.None];
+    let atLeastOneActionEnabled = false;
+    for (const Action of ALL_ACTIONS) {
+        const action = new Action(context, settings);
+        if (action.actionEnabled()) {
+            atLeastOneActionEnabled = true;
+            break;
+        }
+    }
 
-    if (!actionBanUser && !actionRemoveContent) {
+    if (!atLeastOneActionEnabled) {
+        console.log(`${targetId}: No actions enabled, skipping.`);
         return;
     }
 
@@ -131,11 +139,11 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
 
     const target = await getPostOrCommentById(targetId, context);
 
-    const userWhitelist = settings[Setting.UsersToIgnore] as string | undefined ?? "";
-    const usersToIgnore = userWhitelist.split(",").map(username => username.toLowerCase().trim());
+    const userAllowList = settings[Setting.UsersToIgnore] as string | undefined ?? "";
+    const usersToIgnore = userAllowList.split(",").map(username => username.toLowerCase().trim());
 
     if (usersToIgnore.includes(target.authorName.toLowerCase())) {
-        console.log(`${targetId}: Author ${target.authorName} is whitelisted explicitly`);
+        console.log(`${targetId}: Author ${target.authorName} is allowlisted explicitly`);
         return;
     }
 
@@ -150,10 +158,11 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     }
 
     if (settings[Setting.AutoIgnoreUsersAfterContentApproval]) {
-        const userWhitelisted = await context.redis.zScore(WHITELISTED_USERS_KEY, target.authorName);
-        if (userWhitelisted) {
+        const userAllowlisted = await isUserAllowlisted(target.authorName, context);
+        if (userAllowlisted) {
             await context.reddit.approve(targetId);
-            console.log(`${targetId}: Author ${target.authorName} is whitelisted via prior approval`);
+            console.log(`${targetId}: Author ${target.authorName} is allowlisted
+                 via prior approval`);
             return;
         }
     }
@@ -194,51 +203,12 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
 
     const promises: Promise<unknown>[] = [];
 
-    if (actionBanUser) {
-        const banReason = settings[Setting.BanReason] as string | undefined ?? "Ban evasion";
-        let banMessage = settings[Setting.BanMessage] as string | undefined;
-        if (!banMessage) {
-            banMessage = undefined;
-        } else {
-            banMessage = replaceAll(banMessage, "{{username}}", target.authorName);
-            banMessage = replaceAll(banMessage, "{{permalink}}", target.permalink);
+    for (const Action of ALL_ACTIONS) {
+        const action = new Action(context, settings);
+        if (!action.actionEnabled()) {
+            continue;
         }
-
-        promises.push(context.reddit.banUser({
-            subredditName,
-            username: target.authorName,
-            message: banMessage,
-            note: banReason,
-        }));
-        console.log(`${targetId}: ${target.authorName} has been banned.`);
-    }
-
-    if (actionRemoveContent) {
-        promises.push(target.remove());
-        console.log(`${targetId}: ${target.authorName}'s post or comment has been removed.`);
-
-        if (settings[Setting.RemovalMessage]) {
-            const newComment = await context.reddit.submitComment({
-                id: targetId,
-                text: settings[Setting.RemovalMessage] as string,
-            });
-            promises.push(newComment.lock(), newComment.distinguish());
-        }
-    }
-
-    if (actionSendModmail !== ModmailNotificationType.None) {
-        const message = `${target.authorName} has been banned for suspected ban evasion from r/${target.subredditName}. [Permalink to content](${target.permalink})`;
-        const parameters = {
-            subject: "Ban evasion detected",
-            bodyMarkdown: message,
-            subredditId: context.subredditId,
-        };
-
-        if (actionSendModmail === ModmailNotificationType.Inbox) {
-            promises.push(context.reddit.modMail.createModInboxConversation(parameters));
-        } else {
-            promises.push(context.reddit.modMail.createModNotification(parameters));
-        }
+        promises.push(action.execute(target));
     }
 
     promises.push(context.redis.set(`banevasiontarget~${targetId}`, new Date().getTime().toString(), { expiration: addMonths(new Date(), 3) }));

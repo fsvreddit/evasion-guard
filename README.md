@@ -10,13 +10,20 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+### v1.3.0
+
+* Add function to add mod note when a user is detected for ban evasion
+* Add {{permalink}} placeholder support for ban reason
+* Add support for temporary bans
+* Fix an issue that prevented auto-allowlisting on approve from working
+
 ### v1.2.2
 
 * Add function to send modmail when a user is detected for ban evasion
 
 ### v1.2.1
 
-* Add whitelisting functionality
+* Add allowlisting functionality
 * Allow multi-line ban messages
 * Add feature to leave removal messages in reply to users
 

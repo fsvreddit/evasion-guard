@@ -4,11 +4,13 @@ export enum Setting {
     BanUser = "banEvasionBanUsers",
     BanReason = "banReason",
     BanMessage = "banMessage",
+    BanDuration = "banDuration",
     RemoveContent = "banEvasionRemoveContent",
     RemovalMessage = "removalMessage",
+    ModmailNotification = "modmailNotification",
+    EnableModNotes = "enableModNotes",
     ActionThresholdValue = "actionThresholdValue",
     ActionThresholdUnit = "actionThresholdUnit",
-    ModmailNotification = "modmailNotification",
     AutoApproveAfterUnban = "autoApproveAfterUnban",
     UsersToIgnore = "usersToIgnore",
     IgnoreApprovedSubmitters = "ignoreApprovedUsers",
@@ -30,36 +32,80 @@ export enum ModmailNotificationType {
 
 export const settingsForBanEvasionHandling: SettingsFormField[] = [
     {
+        type: "group",
+        label: "Ban Options",
+        fields: [
+            {
+                type: "boolean",
+                name: Setting.BanUser,
+                label: "Ban users detected for ban evasion",
+                defaultValue: false,
+            },
+            {
+                type: "string",
+                name: Setting.BanReason,
+                label: "Ban reason (visible on 'banned users' page).",
+                helpText: "Supports placeholder: {{permalink}}",
+                defaultValue: "Ban evasion",
+            },
+            {
+                type: "paragraph",
+                name: Setting.BanMessage,
+                label: "Ban message to send to user",
+                helpText: "Supports placeholders: {{username}}, {{permalink}}",
+                defaultValue: "Ban evasion",
+            },
+            {
+                type: "number",
+                name: Setting.BanDuration,
+                label: "Ban duration (in days)",
+                helpText: "Set to 0 for a permanent ban.",
+                defaultValue: 0,
+                onValidate: ({ value }) => {
+                    if (value && (value < 0 || value > 999)) {
+                        return "Ban duration must be between 0 and 999 days";
+                    }
+                },
+            },
+        ],
+    },
+    {
+        type: "group",
+        label: "Removal Options",
+        fields: [
+            {
+                type: "boolean",
+                name: Setting.RemoveContent,
+                label: "Remove content from users detected as evading bans",
+                helpText: "Only the comment or post that triggered the Ban Evasion detection will be removed.",
+                defaultValue: true,
+            },
+            {
+                type: "paragraph",
+                name: Setting.RemovalMessage,
+                label: "Removal message to reply to the content with",
+                helpText: "Removal messages will only be left if the above setting is turned on. Leave blank to disable.",
+            },
+        ],
+    },
+    {
+        type: "select",
+        name: Setting.ModmailNotification,
+        label: "Send modmail notification",
+        options: [
+            { label: "No notification", value: ModmailNotificationType.None },
+            { label: "Inbox", value: ModmailNotificationType.Inbox },
+            { label: "Mod Notifications", value: ModmailNotificationType.ModNotifications },
+        ],
+        multiSelect: false,
+        defaultValue: [ModmailNotificationType.None],
+    },
+    {
         type: "boolean",
-        name: Setting.BanUser,
-        label: "Ban users detected for ban evasion",
+        name: Setting.EnableModNotes,
+        label: "Add Mod Note",
+        helpText: "Adds a mod note to the user when a user is flagged for ban evasion.",
         defaultValue: false,
-    },
-    {
-        type: "string",
-        name: Setting.BanReason,
-        label: "Ban reason (visible on 'banned users' page)",
-        defaultValue: "Ban evasion",
-    },
-    {
-        type: "paragraph",
-        name: Setting.BanMessage,
-        label: "Ban message to send to user",
-        helpText: "Supports placeholders: {{username}}, {{permalink}}",
-        defaultValue: "Ban evasion",
-    },
-    {
-        type: "boolean",
-        name: Setting.RemoveContent,
-        label: "Remove content from users detected as evading bans",
-        helpText: "Only the comment or post that triggered the Ban Evasion detection will be removed.",
-        defaultValue: true,
-    },
-    {
-        type: "paragraph",
-        name: Setting.RemovalMessage,
-        label: "Removal message to reply to the content with",
-        helpText: "Removal messages will only be left if the above setting is turned on. Leave blank to disable.",
     },
     {
         type: "number",
@@ -75,18 +121,6 @@ export const settingsForBanEvasionHandling: SettingsFormField[] = [
         options: Object.entries(DateUnit).map(([label, value]) => ({ label, value })),
         multiSelect: false,
         defaultValue: [DateUnit.Day],
-    },
-    {
-        type: "select",
-        name: Setting.ModmailNotification,
-        label: "Send modmail notification",
-        options: [
-            { label: "No notification", value: ModmailNotificationType.None },
-            { label: "Inbox", value: ModmailNotificationType.Inbox },
-            { label: "Mod Notifications", value: ModmailNotificationType.ModNotifications },
-        ],
-        multiSelect: false,
-        defaultValue: [ModmailNotificationType.None],
     },
     {
         type: "boolean",
