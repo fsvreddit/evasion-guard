@@ -1,6 +1,7 @@
 import { Comment, Post } from "@devvit/public-api";
 import { ModmailNotificationType, Setting } from "../settings.js";
 import { ActionBase } from "./actionBase.js";
+import markdownEscape from "markdown-escape";
 
 export class SendModmailAction extends ActionBase {
     private modmailAction (): ModmailNotificationType {
@@ -13,7 +14,7 @@ export class SendModmailAction extends ActionBase {
     }
 
     override async execute (target: Post | Comment) {
-        const message = `${target.authorName} has been banned for suspected ban evasion from r/${target.subredditName}. [Permalink to content](${target.permalink})`;
+        const message = `${markdownEscape(target.authorName)} has been banned for suspected ban evasion from r/${target.subredditName}. [Permalink to content](${target.permalink})`;
         const parameters = {
             subject: "Ban evasion detected",
             bodyMarkdown: message,

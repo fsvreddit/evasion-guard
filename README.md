@@ -10,6 +10,10 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+### v1.3.1
+
+* Escape usernames properly in modmail output
+
 ### v1.3.0
 
 * Add function to add mod note when a user is detected for ban evasion
