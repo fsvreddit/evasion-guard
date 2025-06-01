@@ -10,6 +10,10 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+### v1.3.2
+
+* Fixed bug where the "remove" action type was only working where the "ban" option was enabled
+
 ### v1.3.1
 
 * Escape usernames properly in modmail output

@@ -4,7 +4,7 @@ import { ActionBase } from "./actionBase.js";
 
 export class RemoveContentAction extends ActionBase {
     override actionEnabled () {
-        return this.settings[Setting.BanUser] as boolean | undefined ?? false;
+        return this.settings[Setting.RemoveContent] as boolean | undefined ?? false;
     }
 
     override async execute (target: Post | Comment) {
