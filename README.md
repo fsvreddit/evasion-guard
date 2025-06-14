@@ -1,6 +1,6 @@
 A Devvit app to either remove comments from or ban users who have been detected by Reddit for ban evasion using the native Ban Evasion Detection tools.
 
-I **strongly** advise that the "ban" option is only used if the detection is in High Confidence mode. If you use it when in Low Confidence mode there is a high chance of false positives.
+This app only acts on ban evasion reports that are detected to be High Confidence. Low confidence ban evasion reports are prone to false positives.
 
 The app does not ban the user immediately when Reddit filters the comment or post. There is a short delay of approximately ten seconds to allow the mod log to be written fully, so it is possible that you will occasionally see Ban Evasion entries in the modqueue.
 
@@ -10,7 +10,7 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
-### v1.3.3
+### v1.3.4
 
 * Fix bug preventing app from working after Reddit changed how ban evasion log entries are retrieved from the Dev Platform
 * App now only acts on Higher Accuracy ban evasion detections.
