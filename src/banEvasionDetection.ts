@@ -132,7 +132,7 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
         limit: 100,
     }).all();
 
-    if (!modLog.some(x => x.description?.toLowerCase().includes("ban evasion") && x.target?.id === targetId)) {
+    if (!modLog.some(x => x.details?.toLowerCase().includes("ban evasion") && x.description?.startsWith("Higher accuracy") && x.target?.id === targetId)) {
         console.log(`${targetId}: No ban evasion filter event.`);
         return;
     }

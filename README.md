@@ -10,6 +10,11 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+### v1.3.3
+
+* Fix bug preventing app from working after Reddit changed how ban evasion log entries are retrieved from the Dev Platform
+* App now only acts on Higher Accuracy ban evasion detections.
+
 ### v1.3.2
 
 * Fixed bug where the "remove" action type was only working where the "ban" option was enabled
