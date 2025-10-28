@@ -9,9 +9,9 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/protos": "0.11.16",
-    "@devvit/public-api": "0.11.16",
-    "@devvit/shared-types": "0.11.16",
+    "@devvit/protos": "0.12.1",
+    "@devvit/public-api": "0.12.1",
+    "@devvit/shared-types": "0.12.1",
     "@types/markdown-escape": "^1.1.3",
     "@types/pluralize": "^0.0.33",
     "cron-parser": "^5.0.0",
@@ -21,10 +21,10 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.10.0",
-    "@stylistic/eslint-plugin": "^4.2.0",
+    "@stylistic/eslint-plugin": "^5.5.0",
     "eslint": "^9.10.0",
     "typescript": "5.8.3",
     "typescript-eslint": "^8.4.0",
-    "vitest": "^3.1.2"
+    "vitest": "^4.0.4"
   }
 }

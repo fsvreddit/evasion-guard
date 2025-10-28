@@ -10,6 +10,11 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+### v1.3.5
+
+* Fixed issue that prevents ban evasion events from being detected following changes to how mod action entries appear to the Dev Platform
+* Update Dev Platform dependencies
+
 ### v1.3.4
 
 * Fix bug preventing app from working after Reddit changed how ban evasion log entries are retrieved from the Dev Platform

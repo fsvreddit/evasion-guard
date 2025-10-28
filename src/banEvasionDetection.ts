@@ -1,12 +1,34 @@
 import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
 import { ModAction } from "@devvit/protos";
-import { isCommentId } from "@devvit/shared-types/tid.js";
+import { isCommentId } from "@devvit/public-api/types/tid.js";
 import { addDays, addHours, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
 import { DateUnit, Setting } from "./settings.js";
 import { getPostOrCommentById } from "./utility.js";
 import { HANDLE_REDDIT_ACTIONS_JOB } from "./constants.js";
 import { ALL_ACTIONS } from "./actions/actions.js";
 import { isUserAllowlisted, setAllowListForUser } from "./cleanupTasks.js";
+
+export async function isModOfSub (username: string | undefined, context: TriggerContext, force?: boolean): Promise<boolean> {
+    if (!username) {
+        return false;
+    }
+
+    const redisKey = `ismod~${username}`;
+
+    const cachedValue = await context.redis.get(redisKey);
+    if (!force && cachedValue !== undefined) {
+        return JSON.parse(cachedValue) as boolean;
+    }
+
+    const moderators = await context.reddit.getModerators({
+        subredditName: context.subredditName ?? await context.reddit.getCurrentSubredditName(),
+        username,
+    }).all();
+
+    const isMod = moderators.length > 0;
+    await context.redis.set(redisKey, JSON.stringify(isMod), { expiration: addDays(new Date(), 1) });
+    return isMod;
+}
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
     switch (event.action) {
@@ -21,11 +43,16 @@ export async function handleModAction (event: ModAction, context: TriggerContext
         case "approvelink":
             await handleApproveContent(event, context);
             break;
+        case "acceptmoderatorinvite":
+        case "addmoderator":
+        case "removemoderator":
+            await isModOfSub(event.targetUser?.name, context, true);
+            break;
     }
 }
 
 export async function handleRemoveItemAction (event: ModAction, context: TriggerContext) {
-    if (event.moderator?.name !== "reddit") {
+    if (await isModOfSub(event.targetUser?.name, context)) {
         return;
     }
 
