@@ -6,7 +6,7 @@ The app does not ban the user immediately when Reddit filters the comment or pos
 
 If the user has been recently unbanned from the subreddit, they will not be banned again. This is because the Ban Evasion detection can suffer from false positives immediately after a ban. Due to this, you may occasionally see "Ban evasion" entries in the mod queue that persist longer.
 
-This app is open source. You can find the source on Github [here](https://github.com/fsvreddit/evasion-guard).
+This app is open source. [You can find the source on Github here](https://github.com/fsvreddit/evasion-guard).
 
 ## Change log
 
