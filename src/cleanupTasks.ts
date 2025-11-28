@@ -1,8 +1,7 @@
 import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
-import { CLEANUP_CRON, CLEANUP_JOB } from "./constants.js";
+import { SchedulerJob } from "./constants.js";
 import pluralize from "pluralize";
-import { addDays, subMinutes } from "date-fns";
-import { CronExpressionParser } from "cron-parser";
+import { addDays, addMinutes } from "date-fns";
 
 const ALLOWLISTED_USERS_KEY = "whitelistedUsers";
 const DAYS_BETWEEN_CLEANUP = 28;
@@ -50,6 +49,14 @@ export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObjec
         return;
     }
 
+    const runRecentlyKey = "cleanupRecentlyRun";
+    if (event.data?.fromCron && await context.redis.exists(runRecentlyKey)) {
+        console.log("Cleanup: Recent cron run detected, skipping this run to avoid overlap.");
+        return;
+    }
+
+    await context.redis.set(runRecentlyKey, "true", { expiration: addMinutes(new Date(), 5) });
+
     const itemsToCheck = 50;
 
     // Get the first N accounts that are due a check.
@@ -59,7 +66,7 @@ export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObjec
     if (items.length > itemsToCheck) {
         await context.scheduler.runJob({
             runAt: new Date(),
-            name: CLEANUP_JOB,
+            name: SchedulerJob.Cleanup,
         });
     } else {
         await scheduleAdhocCleanup(context);
@@ -94,23 +101,21 @@ export async function scheduleAdhocCleanup (context: TriggerContext) {
     const nextEntries = await context.redis.zRange(ALLOWLISTED_USERS_KEY, 0, 0, { by: "rank" });
 
     if (nextEntries.length === 0) {
+        console.log("Cleanup: No users in cleanup queue, skipping ad-hoc cleanup scheduling.");
         return;
     }
 
     const nextCleanupTime = new Date(nextEntries[0].score);
     const nextCleanupJobTime = nextCleanupTime < new Date() ? new Date() : nextCleanupTime;
-    const nextScheduledTime = CronExpressionParser.parse(CLEANUP_CRON).next().toDate();
 
-    if (nextCleanupJobTime < subMinutes(nextScheduledTime, 5)) {
-        // It's worth running an ad-hoc job.
-        console.log(`Cleanup: Next ad-hoc cleanup: ${nextCleanupJobTime.toUTCString()}`);
-        await context.scheduler.runJob({
-            data: { runDate: nextCleanupJobTime.toUTCString() },
-            name: CLEANUP_JOB,
-            runAt: nextCleanupJobTime,
-        });
-    } else {
-        console.log(`Cleanup: Next entry in cleanup log is after next scheduled run (${nextCleanupTime.toUTCString()}).`);
-        console.log(`Cleanup: Next cleanup job: ${nextScheduledTime.toUTCString()}`);
-    }
+    const existingJobs = await context.scheduler.listJobs();
+    const existingAdhocJobs = existingJobs.filter(job => job.name === SchedulerJob.Cleanup as string && "runAt" in job);
+    await Promise.all(existingAdhocJobs.map(job => context.scheduler.cancelJob(job.id)));
+
+    console.log(`Cleanup: Next ad-hoc cleanup: ${nextCleanupJobTime.toUTCString()}`);
+    await context.scheduler.runJob({
+        data: { runDate: nextCleanupJobTime.toUTCString() },
+        name: SchedulerJob.Cleanup,
+        runAt: nextCleanupJobTime,
+    });
 }

@@ -1,8 +1,10 @@
-import { Comment, Post, SettingsValues, TriggerContext } from "@devvit/public-api";
+import { Comment, Post, SettingsFormField, SettingsValues, TriggerContext } from "@devvit/public-api";
 
 export abstract class ActionBase {
     protected context: TriggerContext;
     protected settings: SettingsValues;
+
+    abstract actionSettings: SettingsFormField;
 
     protected async subredditName (): Promise<string> {
         return this.context.subredditName ?? this.context.reddit.getCurrentSubredditName();

@@ -1,10 +1,34 @@
-import { Comment, Post } from "@devvit/public-api";
-import { Setting } from "../settings.js";
+import { Comment, Post, SettingsFormField } from "@devvit/public-api";
 import { ActionBase } from "./actionBase.js";
 
+enum RemovalSetting {
+    RemoveContent = "banEvasionRemoveContent",
+    RemovalMessage = "removalMessage",
+}
+
 export class RemoveContentAction extends ActionBase {
+    override actionSettings: SettingsFormField = {
+        type: "group",
+        label: "Removal Options",
+        fields: [
+            {
+                type: "boolean",
+                name: RemovalSetting.RemoveContent,
+                label: "Remove content from users detected as evading bans",
+                helpText: "Only the comment or post that triggered the Ban Evasion detection will be removed.",
+                defaultValue: true,
+            },
+            {
+                type: "paragraph",
+                name: RemovalSetting.RemovalMessage,
+                label: "Removal message to reply to the content with",
+                helpText: "Removal messages will only be left if the above setting is turned on. Placeholder supported: {{username}}",
+            },
+        ],
+    };
+
     override actionEnabled () {
-        return this.settings[Setting.RemoveContent] as boolean | undefined ?? false;
+        return this.settings[RemovalSetting.RemoveContent] as boolean | undefined ?? false;
     }
 
     override async execute (target: Post | Comment) {
@@ -14,10 +38,12 @@ export class RemoveContentAction extends ActionBase {
 
         console.log(`${target.id}: ${target.authorName}'s post or comment has been removed.`);
 
-        if (this.settings[Setting.RemovalMessage]) {
+        let removalMessage = this.settings[RemovalSetting.RemovalMessage] as string | undefined;
+        if (removalMessage) {
+            removalMessage = removalMessage.replaceAll("{{username}}", target.authorName);
             const newComment = await this.context.reddit.submitComment({
                 id: target.id,
-                text: this.settings[Setting.RemovalMessage] as string,
+                text: removalMessage,
             });
             promises.push(newComment.lock(), newComment.distinguish());
         }
