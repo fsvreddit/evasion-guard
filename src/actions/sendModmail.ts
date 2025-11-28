@@ -1,11 +1,34 @@
-import { Comment, Post } from "@devvit/public-api";
-import { ModmailNotificationType, Setting } from "../settings.js";
+import { Comment, Post, SettingsFormField } from "@devvit/public-api";
+import { ModmailNotificationType } from "../settings.js";
 import { ActionBase } from "./actionBase.js";
 import markdownEscape from "markdown-escape";
 
+enum ModmailSetting {
+    ModmailNotification = "modmailNotification",
+}
+
 export class SendModmailAction extends ActionBase {
+    override actionSettings: SettingsFormField = {
+        type: "group",
+        label: "Modmail Options",
+        fields: [
+            {
+                type: "select",
+                name: ModmailSetting.ModmailNotification,
+                label: "Send modmail notification",
+                options: [
+                    { label: "No notification", value: ModmailNotificationType.None },
+                    { label: "Inbox", value: ModmailNotificationType.Inbox },
+                    { label: "Mod Notifications", value: ModmailNotificationType.ModNotifications },
+                ],
+                multiSelect: false,
+                defaultValue: [ModmailNotificationType.None],
+            },
+        ],
+    };
+
     private modmailAction (): ModmailNotificationType {
-        const [notificationType] = this.settings[Setting.ModmailNotification] as ModmailNotificationType[] | undefined ?? [ModmailNotificationType.None];
+        const [notificationType] = this.settings[ModmailSetting.ModmailNotification] as ModmailNotificationType[] | undefined ?? [ModmailNotificationType.None];
         return notificationType;
     }
 

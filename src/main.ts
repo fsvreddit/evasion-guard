@@ -1,11 +1,12 @@
 import { Devvit } from "@devvit/public-api";
 import { handleModAction, handleRedditActions } from "./banEvasionDetection.js";
-import { settingsForBanEvasionHandling } from "./settings.js";
+import { getAllSettings } from "./settings.js";
 import { handleInstallEvents } from "./installEvents.js";
-import { CLEANUP_JOB, HANDLE_REDDIT_ACTIONS_JOB } from "./constants.js";
+import { SchedulerJob } from "./constants.js";
 import { cleanupDeletedAccounts } from "./cleanupTasks.js";
+import { addAdditionalDetailsToModmail } from "./actions/banUser.js";
 
-Devvit.addSettings(settingsForBanEvasionHandling);
+Devvit.addSettings(getAllSettings());
 
 Devvit.addTrigger({
     event: "ModAction",
@@ -18,13 +19,18 @@ Devvit.addTrigger({
 });
 
 Devvit.addSchedulerJob({
-    name: HANDLE_REDDIT_ACTIONS_JOB,
+    name: SchedulerJob.HandleRedditActions,
     onRun: handleRedditActions,
 });
 
 Devvit.addSchedulerJob({
-    name: CLEANUP_JOB,
+    name: SchedulerJob.Cleanup,
     onRun: cleanupDeletedAccounts,
+});
+
+Devvit.addSchedulerJob({
+    name: SchedulerJob.AddAdditionalDetailsToModmail,
+    onRun: addAdditionalDetailsToModmail,
 });
 
 Devvit.configure({

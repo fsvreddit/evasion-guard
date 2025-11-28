@@ -10,6 +10,13 @@ This app is open source. You can find the source on Github [here](https://github
 
 ## Change log
 
+### v1.4 (coming soon!)
+
+* Allow customisable placeholders when leaving mod notes
+* Add feature to add a copy of the content that triggered the detection as a private mod note on the ban modmail
+* Reduced resource utilisation on Dev Platform
+* Update Dev Platform dependencies
+
 ### v1.3.5
 
 * Fixed issue that prevents ban evasion events from being detected following changes to how mod action entries appear to the Dev Platform

@@ -1,11 +1,37 @@
-import { Comment, Post } from "@devvit/public-api";
-import { Setting } from "../settings.js";
+import { Comment, Post, SettingsFormField } from "@devvit/public-api";
 import { ActionBase } from "./actionBase.js";
 import { addDays } from "date-fns";
+import { shortenedPermalink } from "../utility.js";
+
+enum ModNoteSetting {
+    EnableModNotes = "enableModNotes",
+    ModNoteMessage = "modNoteMessage",
+}
 
 export class AddModNoteAction extends ActionBase {
+    override actionSettings: SettingsFormField = {
+        type: "group",
+        label: "Mod Note Options",
+        fields: [
+            {
+                type: "boolean",
+                name: ModNoteSetting.EnableModNotes,
+                label: "Add Mod Note",
+                helpText: "Adds a mod note to the user when a user is flagged for ban evasion.",
+                defaultValue: false,
+            },
+            {
+                type: "string",
+                name: ModNoteSetting.ModNoteMessage,
+                label: "Mod Note Message",
+                helpText: "Message to add as a mod note when a user is flagged for ban evasion. Supports placeholder {{permalink}}",
+                defaultValue: "User was flagged by Reddit's ban evasion detection system.",
+            },
+        ],
+    };
+
     override actionEnabled () {
-        return this.settings[Setting.EnableModNotes] as boolean | undefined ?? false;
+        return this.settings[ModNoteSetting.EnableModNotes] as boolean | undefined ?? false;
     }
 
     private async setModNoteAddedRecord (username: string) {
@@ -44,10 +70,13 @@ export class AddModNoteAction extends ActionBase {
             return;
         }
 
+        let modNote = this.settings[ModNoteSetting.ModNoteMessage] as string;
+        modNote = modNote.replaceAll("{{permalink}}", shortenedPermalink(target.permalink));
+
         await this.context.reddit.addModNote({
             subreddit: await this.subredditName(),
             user: target.authorName,
-            note: "User was flagged by Reddit's ban evasion detection system.",
+            note: modNote,
             label: "SPAM_WATCH",
         });
 

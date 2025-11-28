@@ -4,13 +4,17 @@ import { isCommentId } from "@devvit/public-api/types/tid.js";
 import { addDays, addHours, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
 import { DateUnit, Setting } from "./settings.js";
 import { getPostOrCommentById } from "./utility.js";
-import { HANDLE_REDDIT_ACTIONS_JOB } from "./constants.js";
+import { SchedulerJob } from "./constants.js";
 import { ALL_ACTIONS } from "./actions/actions.js";
 import { isUserAllowlisted, setAllowListForUser } from "./cleanupTasks.js";
 
 export async function isModOfSub (username: string | undefined, context: TriggerContext, force?: boolean): Promise<boolean> {
     if (!username) {
         return false;
+    }
+
+    if (username === "AutoModerator" || username === `${context.subredditName}-ModTeam`) {
+        return true;
     }
 
     const redisKey = `ismod~${username}`;
@@ -56,7 +60,7 @@ export async function handleRemoveItemAction (event: ModAction, context: Trigger
         return;
     }
 
-    if (!event.subreddit) {
+    if (!event.subreddit || !event.id) {
         return;
     }
 
@@ -80,9 +84,10 @@ export async function handleRemoveItemAction (event: ModAction, context: Trigger
     }
 
     await context.scheduler.runJob({
-        name: HANDLE_REDDIT_ACTIONS_JOB,
+        name: SchedulerJob.HandleRedditActions,
         data: {
             targetId,
+            eventId: event.id,
             subredditName: event.subreddit.name,
         },
         runAt: addSeconds(new Date(), 10), // 10 seconds to give async updates time to finish.
@@ -119,8 +124,7 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
         return;
     }
 
-    const removedByThisApp = await context.redis.get(`banevasiontarget~${targetId}`);
-    if (!removedByThisApp) {
+    if (!await context.redis.exists(`banevasiontarget~${targetId}`)) {
         return;
     }
 
@@ -131,8 +135,9 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
 export async function handleRedditActions (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
     const targetId = event.data?.targetId as string | undefined;
     const subredditName = event.data?.subredditName as string | undefined;
+    const eventId = event.data?.eventId as string | undefined;
 
-    if (!targetId || !subredditName) {
+    if (!targetId || !subredditName || !eventId) {
         return;
     }
 
@@ -160,6 +165,10 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     }).all();
 
     if (!modLog.some((x) => {
+        if (x.id !== eventId) {
+            return false;
+        }
+
         if (x.target?.id !== targetId) {
             return false;
         }
