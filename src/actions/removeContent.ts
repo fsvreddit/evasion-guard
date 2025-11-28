@@ -22,7 +22,7 @@ export class RemoveContentAction extends ActionBase {
                 type: "paragraph",
                 name: RemovalSetting.RemovalMessage,
                 label: "Removal message to reply to the content with",
-                helpText: "Removal messages will only be left if the above setting is turned on. Leave blank to disable.",
+                helpText: "Removal messages will only be left if the above setting is turned on. Placeholder supported: {{username}}",
             },
         ],
     };
@@ -38,10 +38,12 @@ export class RemoveContentAction extends ActionBase {
 
         console.log(`${target.id}: ${target.authorName}'s post or comment has been removed.`);
 
-        if (this.settings[RemovalSetting.RemovalMessage]) {
+        let removalMessage = this.settings[RemovalSetting.RemovalMessage] as string | undefined;
+        if (removalMessage) {
+            removalMessage = removalMessage.replaceAll("{{username}}", target.authorName);
             const newComment = await this.context.reddit.submitComment({
                 id: target.id,
-                text: this.settings[RemovalSetting.RemovalMessage] as string,
+                text: removalMessage,
             });
             promises.push(newComment.lock(), newComment.distinguish());
         }

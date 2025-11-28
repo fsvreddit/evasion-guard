@@ -15,6 +15,7 @@ This app is open source. You can find the source on Github [here](https://github
 * Allow customisable placeholders when leaving mod notes
 * Add feature to add a copy of the content that triggered the detection as a private mod note on the ban modmail
 * Modmail feature now is clearer about action taken (previously, it would always say "banned" even if that option was not enabled)
+* Removal message now supports {{username}} placeholder
 * Reduced resource utilisation on Dev Platform
 * Update Dev Platform dependencies
 
