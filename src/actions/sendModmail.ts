@@ -1,7 +1,11 @@
 import { Comment, Post, SettingsFormField } from "@devvit/public-api";
 import { ModmailNotificationType } from "../settings.js";
 import { ActionBase } from "./actionBase.js";
-import markdownEscape from "markdown-escape";
+import json2md from "json2md";
+import { RemoveContentAction } from "./removeContent.js";
+import { BanUserAction } from "./banUser.js";
+import { AddModNoteAction } from "./addModNote.js";
+import pluralize from "pluralize";
 
 enum ModmailSetting {
     ModmailNotification = "modmailNotification",
@@ -37,10 +41,31 @@ export class SendModmailAction extends ActionBase {
     }
 
     override async execute (target: Post | Comment) {
-        const message = `${markdownEscape(target.authorName)} has been banned for suspected ban evasion from r/${target.subredditName}. [Permalink to content](${target.permalink})`;
+        const message: json2md.DataObject[] = [
+            { p: `/u/${target.authorName} has been flagged for suspected ban evasion in r/${target.subredditName}. [Permalink to content](${target.permalink})` },
+        ];
+
+        const actionTakenBullets: string[] = [];
+        if (new BanUserAction(this.context, this.settings).actionEnabled()) {
+            actionTakenBullets.push("The user has been banned for suspected ban evasion.");
+        }
+
+        if (new RemoveContentAction(this.context, this.settings).actionEnabled()) {
+            actionTakenBullets.push("The content that triggered the ban evasion detection has been removed.");
+        }
+
+        if (new AddModNoteAction(this.context, this.settings).actionEnabled()) {
+            actionTakenBullets.push("A mod note has been added to the user's account.");
+        }
+
+        if (actionTakenBullets.length > 0) {
+            message.push({ p: `${pluralize("Action", actionTakenBullets.length)} taken:` });
+            message.push({ ul: actionTakenBullets });
+        }
+
         const parameters = {
-            subject: "Ban evasion detected",
-            bodyMarkdown: message,
+            subject: "Potential ban evasion detected",
+            bodyMarkdown: json2md(message),
             subredditId: this.context.subredditId,
         };
 
