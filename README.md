@@ -10,7 +10,7 @@ This app is open source. [You can find the source on Github here](https://github
 
 ## Change log
 
-### v1.4 (coming soon!)
+### v1.4.0
 
 * Allow customisable placeholders when leaving mod notes
 * Add feature to add a copy of the content that triggered the detection as a private mod note on the ban modmail
