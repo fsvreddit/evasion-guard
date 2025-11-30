@@ -5,6 +5,8 @@ import { SchedulerJob } from "./constants.js";
 import { scheduleAdhocCleanup } from "./cleanupTasks.js";
 
 export async function handleInstallEvents (_: AppInstall | AppUpgrade, context: TriggerContext) {
+    console.log("Handling install/upgrade event");
+
     // Find and remove jobs.
     const existingJobs = await context.scheduler.listJobs();
     await Promise.all(existingJobs.map(job => context.scheduler.cancelJob(job.id)));

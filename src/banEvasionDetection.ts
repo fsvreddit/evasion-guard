@@ -56,11 +56,11 @@ export async function handleModAction (event: ModAction, context: TriggerContext
 }
 
 export async function handleRemoveItemAction (event: ModAction, context: TriggerContext) {
-    if (await isModOfSub(event.targetUser?.name, context)) {
+    if (await isModOfSub(event.moderator?.name, context)) {
         return;
     }
 
-    if (!event.subreddit || !event.id) {
+    if (!event.subreddit) {
         return;
     }
 
@@ -87,7 +87,6 @@ export async function handleRemoveItemAction (event: ModAction, context: Trigger
         name: SchedulerJob.HandleRedditActions,
         data: {
             targetId,
-            eventId: event.id,
             subredditName: event.subreddit.name,
         },
         runAt: addSeconds(new Date(), 10), // 10 seconds to give async updates time to finish.
@@ -135,9 +134,8 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
 export async function handleRedditActions (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
     const targetId = event.data?.targetId as string | undefined;
     const subredditName = event.data?.subredditName as string | undefined;
-    const eventId = event.data?.eventId as string | undefined;
 
-    if (!targetId || !subredditName || !eventId) {
+    if (!targetId || !subredditName) {
         return;
     }
 
@@ -165,10 +163,6 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     }).all();
 
     if (!modLog.some((x) => {
-        if (x.id !== eventId) {
-            return false;
-        }
-
         if (x.target?.id !== targetId) {
             return false;
         }
