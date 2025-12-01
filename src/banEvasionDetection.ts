@@ -17,6 +17,10 @@ export async function isModOfSub (username: string | undefined, context: Trigger
         return true;
     }
 
+    if (username === "reddit" || username === "[ Redacted ]") {
+        return false;
+    }
+
     const redisKey = `ismod~${username}`;
 
     const cachedValue = await context.redis.get(redisKey);
@@ -56,8 +60,12 @@ export async function handleModAction (event: ModAction, context: TriggerContext
 }
 
 export async function handleRemoveItemAction (event: ModAction, context: TriggerContext) {
-    if (await isModOfSub(event.moderator?.name, context)) {
-        return;
+    try {
+        if (await isModOfSub(event.moderator?.name, context)) {
+            return;
+        }
+    } catch (e) {
+        console.error(`Error checking mod status for ${event.moderator?.name}:`, e);
     }
 
     if (!event.subreddit) {
