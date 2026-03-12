@@ -140,7 +140,7 @@ export async function addAdditionalDetailsToModmail (event: ScheduledJobEvent<JS
     });
 
     const banModmail = Object.values(recentModmail.conversations).find(convo => convo.participant?.name === data.authorName
-        && Object.values(convo.messages).some(message => message.author?.name === context.appName));
+        && Object.values(convo.messages).some(message => message.author?.name === context.appSlug));
 
     if (!banModmail) {
         console.error(`Could not find modmail conversation for banned user ${data.authorName}`);

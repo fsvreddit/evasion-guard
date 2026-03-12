@@ -55,7 +55,7 @@ export class AddModNoteAction extends ActionBase {
             filter: "NOTE",
         }).all();
 
-        const modNoteExists = modNotes.some(note => note.operator.name === this.context.appName);
+        const modNoteExists = modNotes.some(note => note.operator.name === this.context.appSlug);
         if (modNoteExists) {
             await this.setModNoteAddedRecord(username);
         }
