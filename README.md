@@ -10,6 +10,10 @@ This app is open source. [You can find the source on Github here](https://github
 
 ## Change log
 
+### v1.4.7
+
+* Fix bug that causes install failures on some subreddits
+
 ### v1.4.6
 
 * Fix bug that prevented app from working entirely. Sorry about that!

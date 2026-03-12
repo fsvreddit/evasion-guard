@@ -1,6 +1,6 @@
 import { AppInstall, AppUpgrade } from "@devvit/protos";
-import { TriggerContext } from "@devvit/public-api";
-import { addDays, subDays } from "date-fns";
+import { JobContext, TriggerContext } from "@devvit/public-api";
+import { addDays, addSeconds, subDays } from "date-fns";
 import { SchedulerJob } from "./constants.js";
 import { scheduleAdhocCleanup } from "./cleanupTasks.js";
 
@@ -20,13 +20,25 @@ export async function handleInstallEvents (_: AppInstall | AppUpgrade, context: 
         data: { fromCron: true },
     });
 
+    await context.scheduler.runJob({
+        name: SchedulerJob.StoreRecentUnbansAfterInstall,
+        runAt: addSeconds(new Date(), 30),
+    });
+
     await scheduleAdhocCleanup(context);
 
+    console.log("Completed handling install/upgrade event");
+}
+
+export async function storeRecentUnbansAfterInstall (_: unknown, context: JobContext) {
     const redisKey = "StoredRecentUnbans";
 
     if (await context.redis.exists(redisKey)) {
+        console.log("Recent unbans have already been stored after install/upgrade, skipping");
         return;
     }
+
+    console.log("Storing recent unbans after install/upgrade");
 
     const subredditName = context.subredditName ?? await context.reddit.getCurrentSubredditName();
     const recentUnbans = await context.reddit.getModerationLog({
@@ -44,4 +56,5 @@ export async function handleInstallEvents (_: AppInstall | AppUpgrade, context: 
     }
 
     await context.redis.set(redisKey, "true");
+    console.log("Completed storing recent unbans after install/upgrade");
 }

@@ -9,8 +9,8 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/protos": "0.12.4",
-    "@devvit/public-api": "0.12.4",
+    "@devvit/protos": "0.12.14",
+    "@devvit/public-api": "0.12.14",
     "@types/json2md": "^1.5.4",
     "@types/pluralize": "^0.0.33",
     "date-fns": "^4.0.0",
@@ -18,11 +18,9 @@
     "pluralize": "^8.0.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.10.0",
-    "@stylistic/eslint-plugin": "^5.5.0",
-    "eslint": "^9.10.0",
+    "@fsvreddit/eslint-config": "github:fsvreddit/eslint-config",
+    "eslint": "^10.0.0",
     "typescript": "5.8.3",
-    "typescript-eslint": "^8.4.0",
     "vitest": "^4.0.4"
   }
 }

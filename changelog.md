@@ -1,6 +1,10 @@
 ## Change log
 
-### v1.4.3
+### v1.4.7
+
+* Fix bug that causes install failures on some subreddits
+
+### v1.4.6
 
 * Fix bug that prevented app from working entirely. Sorry about that!
 

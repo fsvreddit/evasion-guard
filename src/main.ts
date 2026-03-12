@@ -1,7 +1,7 @@
 import { Devvit } from "@devvit/public-api";
 import { handleModAction, handleRedditActions } from "./banEvasionDetection.js";
 import { getAllSettings } from "./settings.js";
-import { handleInstallEvents } from "./installEvents.js";
+import { handleInstallEvents, storeRecentUnbansAfterInstall } from "./installEvents.js";
 import { SchedulerJob } from "./constants.js";
 import { cleanupDeletedAccounts } from "./cleanupTasks.js";
 import { addAdditionalDetailsToModmail } from "./actions/banUser.js";
@@ -31,6 +31,11 @@ Devvit.addSchedulerJob({
 Devvit.addSchedulerJob({
     name: SchedulerJob.AddAdditionalDetailsToModmail,
     onRun: addAdditionalDetailsToModmail,
+});
+
+Devvit.addSchedulerJob({
+    name: SchedulerJob.StoreRecentUnbansAfterInstall,
+    onRun: storeRecentUnbansAfterInstall,
 });
 
 Devvit.configure({

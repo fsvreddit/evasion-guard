@@ -3,4 +3,5 @@ export enum SchedulerJob {
     HandleRedditActions = "handleRedditActions",
     Cleanup = "cleanupJob",
     AddAdditionalDetailsToModmail = "addAdditionalDetailsToModmailJob",
+    StoreRecentUnbansAfterInstall = "storeRecentUnbansAfterInstall",
 }
