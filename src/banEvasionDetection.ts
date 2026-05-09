@@ -7,6 +7,7 @@ import { getPostOrCommentById } from "./utility.js";
 import { SchedulerJob } from "./constants.js";
 import { ALL_ACTIONS } from "./actions/actions.js";
 import { isUserAllowlisted, setAllowListForUser } from "./cleanupTasks.js";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 export async function isModOfSub (username: string | undefined, context: TriggerContext, force?: boolean): Promise<boolean> {
     if (!username) {
@@ -39,6 +40,11 @@ export async function isModOfSub (username: string | undefined, context: Trigger
 }
 
 export async function handleModAction (event: ModAction, context: TriggerContext) {
+    if (await hasTriggerBeenHandled(context.redis, `modAction:${event.moderator?.name}:${event.action}:${event.actionedAt?.getTime()}`)) {
+        console.log(`Duplicate mod action trigger for ${event.moderator?.name} and action ${event.action}`);
+        return;
+    }
+
     switch (event.action) {
         case "removecomment":
         case "removelink":
