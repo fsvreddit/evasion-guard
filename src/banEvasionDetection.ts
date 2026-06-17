@@ -2,7 +2,7 @@ import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/pub
 import { ModAction } from "@devvit/protos";
 import { isCommentId } from "@devvit/public-api/types/tid.js";
 import { addDays, addHours, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
-import { DateUnit, Setting } from "./settings.js";
+import { DateUnit, LowConfidenceAction, Setting } from "./settings.js";
 import { getPostOrCommentById } from "./utility.js";
 import { SchedulerJob } from "./constants.js";
 import { ALL_ACTIONS } from "./actions/actions.js";
@@ -155,6 +155,52 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
 
     const settings = await context.settings.getAll();
 
+    const modLog = await context.reddit.getModerationLog({
+        subredditName,
+        moderatorUsernames: ["reddit"],
+        type: isCommentId(targetId) ? "removecomment" : "removelink",
+        limit: 100,
+    }).all();
+
+    const isHighConfidence = modLog.some((x) => {
+        if (x.target?.id !== targetId) {
+            return false;
+        }
+        return x.details?.toLowerCase().includes("ban evasion") && x.description?.startsWith("Higher accuracy");
+    });
+
+    const isLowConfidence = !isHighConfidence && modLog.some((x) => {
+        if (x.target?.id !== targetId) {
+            return false;
+        }
+        if (x.details?.toLowerCase().includes("ban evasion")) {
+            return true;
+        }
+        if (x.description?.toLowerCase().includes("ban evasion")) {
+            return true;
+        }
+        return false;
+    });
+
+    if (!isHighConfidence && !isLowConfidence) {
+        console.log(`${targetId}: No ban evasion filter event.`);
+        return;
+    }
+
+    if (isLowConfidence) {
+        const [lowConfidenceAction] = settings[Setting.LowConfidenceAction] as string[] | undefined ?? [LowConfidenceAction.Ignore];
+        if (lowConfidenceAction === LowConfidenceAction.Ignore) {
+            console.log(`${targetId}: Low confidence ban evasion detection, ignoring per settings.`);
+            return;
+        }
+        if (lowConfidenceAction === LowConfidenceAction.RemoveFromQueue) {
+            console.log(`${targetId}: Low confidence ban evasion detection, removing from mod queue.`);
+            await context.reddit.remove(targetId, false);
+            return;
+        }
+        console.log(`${targetId}: Low confidence ban evasion detection, proceeding with configured actions.`);
+    }
+
     let atLeastOneActionEnabled = false;
     for (const Action of ALL_ACTIONS) {
         const action = new Action(context, settings);
@@ -166,32 +212,6 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
 
     if (!atLeastOneActionEnabled) {
         console.log(`${targetId}: No actions enabled, skipping.`);
-        return;
-    }
-
-    const modLog = await context.reddit.getModerationLog({
-        subredditName,
-        moderatorUsernames: ["reddit"],
-        type: isCommentId(targetId) ? "removecomment" : "removelink",
-        limit: 100,
-    }).all();
-
-    if (!modLog.some((x) => {
-        if (x.target?.id !== targetId) {
-            return false;
-        }
-
-        if (x.details?.toLowerCase().includes("ban evasion") && x.description?.startsWith("Higher accuracy")) {
-            return true;
-        }
-
-        if (x.description?.toLowerCase().includes("ban evasion")) {
-            return true;
-        }
-
-        return false;
-    })) {
-        console.log(`${targetId}: No ban evasion filter event.`);
         return;
     }
 

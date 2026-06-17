@@ -8,6 +8,13 @@ export enum Setting {
     UsersToIgnore = "usersToIgnore",
     IgnoreApprovedSubmitters = "ignoreApprovedUsers",
     AutoIgnoreUsersAfterContentApproval = "ignoreAfterContentApproval",
+    LowConfidenceAction = "lowConfidenceAction",
+}
+
+export enum LowConfidenceAction {
+    Ignore = "ignore",
+    RemoveFromQueue = "removeFromQueue",
+    TakeAction = "takeAction",
 }
 
 export enum DateUnit {
@@ -68,6 +75,19 @@ export const generalSettings: SettingsFormField = {
             label: "Ignore and approve content from users who have had content flagged by this app re-approved",
             helpText: "Only approves content specifically flagged for ban evasion, not content more generally",
             defaultValue: false,
+        },
+        {
+            type: "select",
+            name: Setting.LowConfidenceAction,
+            label: "Action for low confidence ban evasion reports",
+            helpText: "Low confidence reports are more likely to be false positives. 'Remove from mod queue' confirms the removal without taking further action. 'Take action' applies all configured actions as with high confidence reports.",
+            options: [
+                { label: "Ignore (leave in mod queue)", value: LowConfidenceAction.Ignore },
+                { label: "Remove from mod queue", value: LowConfidenceAction.RemoveFromQueue },
+                { label: "Take action (ban, remove, etc.)", value: LowConfidenceAction.TakeAction },
+            ],
+            multiSelect: false,
+            defaultValue: [LowConfidenceAction.Ignore],
         },
     ],
 };
