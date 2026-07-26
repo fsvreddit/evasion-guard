@@ -2,8 +2,9 @@ import { Comment, JobContext, JSONObject, Post, ScheduledJobEvent, SettingsFormF
 import { ActionBase } from "./actionBase.js";
 import { shortenedPermalink } from "../utility.js";
 import { SchedulerJob } from "../constants.js";
-import { addSeconds } from "date-fns";
+import { addMinutes, addSeconds } from "date-fns";
 import json2md from "json2md";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 enum BanSetting {
     BanUser = "banEvasionBanUsers",
@@ -116,6 +117,7 @@ export class BanUserAction extends ActionBase {
                 targetPermalink: shortenedPermalink(target.permalink),
                 authorName: target.authorName,
                 message: json2md(message),
+                jobGuid: crypto.randomUUID(),
             },
         });
     }
@@ -128,6 +130,12 @@ interface AdditionalDetailsToModmailEventData {
 }
 
 export async function addAdditionalDetailsToModmail (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `addAdditionalDetailsToModmail:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+        console.warn(`Duplicate addAdditionalDetailsToModmail job for jobGuid ${jobGuid}`);
+        return;
+    }
+
     const data = event.data as AdditionalDetailsToModmailEventData | undefined;
     if (!data) {
         console.error("No data provided for addAdditionalDetailsToModmail job");

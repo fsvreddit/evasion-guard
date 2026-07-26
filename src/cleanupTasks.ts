@@ -2,6 +2,7 @@ import { JobContext, JSONObject, ScheduledJobEvent, TriggerContext, User } from 
 import { SchedulerJob } from "./constants.js";
 import pluralize from "pluralize";
 import { addDays, addMinutes } from "date-fns";
+import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
 
 const ALLOWLISTED_USERS_KEY = "whitelistedUsers";
 const DAYS_BETWEEN_CLEANUP = 28;
@@ -36,6 +37,12 @@ interface UserActive {
 }
 
 export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObject | undefined>, context: JobContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `cleanupDeletedAccounts:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+        console.warn(`Duplicate cleanupDeletedAccounts job for jobGuid ${jobGuid}`);
+        return;
+    }
+
     if (event.data?.runDate) {
         console.log(`Cleanup: Starting cleanup job scheduled for ${event.data.runDate as string}`);
     } else {
@@ -67,6 +74,7 @@ export async function cleanupDeletedAccounts (event: ScheduledJobEvent<JSONObjec
         await context.scheduler.runJob({
             runAt: new Date(),
             name: SchedulerJob.Cleanup,
+            data: { jobGuid: crypto.randomUUID() },
         });
     } else {
         await scheduleAdhocCleanup(context);
@@ -114,7 +122,7 @@ export async function scheduleAdhocCleanup (context: TriggerContext) {
 
     console.log(`Cleanup: Next ad-hoc cleanup: ${nextCleanupJobTime.toUTCString()}`);
     await context.scheduler.runJob({
-        data: { runDate: nextCleanupJobTime.toUTCString() },
+        data: { runDate: nextCleanupJobTime.toUTCString(), jobGuid: crypto.randomUUID() },
         name: SchedulerJob.Cleanup,
         runAt: nextCleanupJobTime,
     });

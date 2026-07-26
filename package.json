@@ -9,8 +9,8 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@devvit/protos": "0.12.22",
-    "@devvit/public-api": "0.12.22",
+    "@devvit/protos": "0.13.9",
+    "@devvit/public-api": "0.13.9",
     "@fsvreddit/fsv-devvit-helpers": "github:fsvreddit/fsv-devvit-helpers",
     "date-fns": "^4.0.0",
     "json2md": "^2.0.3",

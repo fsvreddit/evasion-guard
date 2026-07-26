@@ -1,7 +1,7 @@
 import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
 import { ModAction } from "@devvit/protos";
 import { isCommentId } from "@devvit/public-api/types/tid.js";
-import { addDays, addHours, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
+import { addDays, addHours, addMinutes, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
 import { DateUnit, Setting } from "./settings.js";
 import { getPostOrCommentById } from "./utility.js";
 import { SchedulerJob } from "./constants.js";
@@ -102,6 +102,7 @@ export async function handleRemoveItemAction (event: ModAction, context: Trigger
         data: {
             targetId,
             subredditName: event.subreddit.name,
+            jobGuid: crypto.randomUUID(),
         },
         runAt: addSeconds(new Date(), 10), // 10 seconds to give async updates time to finish.
     });
@@ -146,6 +147,12 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
 }
 
 export async function handleRedditActions (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
+    const jobGuid = event.data?.jobGuid as string | undefined;
+    if (jobGuid && await hasTriggerBeenHandled(context.redis, `handleRedditActions:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+        console.warn(`Duplicate handleRedditActions job for jobGuid ${jobGuid}`);
+        return;
+    }
+
     const targetId = event.data?.targetId as string | undefined;
     const subredditName = event.data?.subredditName as string | undefined;
 

@@ -23,6 +23,7 @@ export async function handleInstallEvents (_: AppInstall | AppUpgrade, context: 
     await context.scheduler.runJob({
         name: SchedulerJob.StoreRecentUnbansAfterInstall,
         runAt: addSeconds(new Date(), 30),
+        data: { jobGuid: crypto.randomUUID() },
     });
 
     await scheduleAdhocCleanup(context);
