@@ -1,5 +1,5 @@
-import { Comment, Post, SettingsFormField } from "@devvit/public-api";
-import { ModmailNotificationType } from "../settings.js";
+import { Comment, context, Post, reddit } from "@devvit/web/server";
+import { ModmailNotificationType } from "..";
 import { ActionBase } from "./actionBase.js";
 import json2md from "json2md";
 import { RemoveContentAction } from "./removeContent.js";
@@ -7,37 +7,19 @@ import { BanUserAction } from "./banUser.js";
 import { AddModNoteAction } from "./addModNote.js";
 import pluralize from "pluralize";
 
-enum ModmailSetting {
+export enum ModmailSetting {
     ModmailNotification = "modmailNotification",
 }
 
 export class SendModmailAction extends ActionBase {
-    override actionSettings: SettingsFormField = {
-        type: "group",
-        label: "Modmail Options",
-        fields: [
-            {
-                type: "select",
-                name: ModmailSetting.ModmailNotification,
-                label: "Send modmail notification",
-                options: [
-                    { label: "No notification", value: ModmailNotificationType.None },
-                    { label: "Inbox", value: ModmailNotificationType.Inbox },
-                    { label: "Mod Notifications", value: ModmailNotificationType.ModNotifications },
-                ],
-                multiSelect: false,
-                defaultValue: [ModmailNotificationType.None],
-            },
-        ],
-    };
+    override actionEnabled () {
+        return this.modmailAction() !== ModmailNotificationType.None;
+    }
 
     private modmailAction (): ModmailNotificationType {
         const [notificationType] = this.settings[ModmailSetting.ModmailNotification] as ModmailNotificationType[] | undefined ?? [ModmailNotificationType.None];
-        return notificationType;
-    }
-
-    override actionEnabled () {
-        return this.modmailAction() !== ModmailNotificationType.None;
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        return notificationType!;
     }
 
     override async execute (target: Post | Comment) {
@@ -46,15 +28,15 @@ export class SendModmailAction extends ActionBase {
         ];
 
         const actionTakenBullets: string[] = [];
-        if (new BanUserAction(this.context, this.settings).actionEnabled()) {
+        if (new BanUserAction(this.settings).actionEnabled()) {
             actionTakenBullets.push("The user has been banned for suspected ban evasion.");
         }
 
-        if (new RemoveContentAction(this.context, this.settings).actionEnabled()) {
+        if (new RemoveContentAction(this.settings).actionEnabled()) {
             actionTakenBullets.push("The content that triggered the ban evasion detection has been removed.");
         }
 
-        if (new AddModNoteAction(this.context, this.settings).actionEnabled()) {
+        if (new AddModNoteAction(this.settings).actionEnabled()) {
             actionTakenBullets.push("A mod note has been added to the user's account.");
         }
 
@@ -66,13 +48,13 @@ export class SendModmailAction extends ActionBase {
         const parameters = {
             subject: "Potential ban evasion detected",
             bodyMarkdown: json2md(message),
-            subredditId: this.context.subredditId,
+            subredditId: context.subredditId,
         };
 
         if (this.modmailAction() === ModmailNotificationType.Inbox) {
-            await this.context.reddit.modMail.createModInboxConversation(parameters);
+            await reddit.modMail.createModInboxConversation(parameters);
         } else {
-            await this.context.reddit.modMail.createModNotification(parameters);
+            await reddit.modMail.createModNotification(parameters);
         }
     }
 }

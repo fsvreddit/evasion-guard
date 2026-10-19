@@ -1,47 +1,26 @@
-import { Comment, Post, SettingsFormField } from "@devvit/public-api";
+import { Comment, context, Post, reddit, redis } from "@devvit/web/server";
 import { ActionBase } from "./actionBase.js";
 import { addDays } from "date-fns";
 import { shortenedPermalink } from "../utility.js";
 
-enum ModNoteSetting {
+export enum ModNoteSetting {
     EnableModNotes = "enableModNotes",
     ModNoteMessage = "modNoteMessage",
 }
 
 export class AddModNoteAction extends ActionBase {
-    override actionSettings: SettingsFormField = {
-        type: "group",
-        label: "Mod Note Options",
-        fields: [
-            {
-                type: "boolean",
-                name: ModNoteSetting.EnableModNotes,
-                label: "Add Mod Note",
-                helpText: "Adds a mod note to the user when a user is flagged for ban evasion.",
-                defaultValue: false,
-            },
-            {
-                type: "string",
-                name: ModNoteSetting.ModNoteMessage,
-                label: "Mod Note Message",
-                helpText: "Message to add as a mod note when a user is flagged for ban evasion. Supports placeholder {{permalink}}",
-                defaultValue: "User was flagged by Reddit's ban evasion detection system.",
-            },
-        ],
-    };
-
     override actionEnabled () {
         return this.settings[ModNoteSetting.EnableModNotes] as boolean | undefined ?? false;
     }
 
     private async setModNoteAddedRecord (username: string) {
         const redisKey = `modnote:${username}`;
-        await this.context.redis.set(redisKey, new Date().getTime().toString(), { expiration: addDays(new Date(), 28) });
+        await redis.set(redisKey, new Date().getTime().toString(), { expiration: addDays(new Date(), 28) });
     }
 
     private async hasNoteBeenAddedAlready (username: string): Promise<boolean> {
         const redisKey = `modnote:${username}`;
-        const noteAdded = await this.context.redis.exists(redisKey);
+        const noteAdded = await redis.exists(redisKey);
         if (noteAdded) {
             // Push forward the expiration date.
             await this.setModNoteAddedRecord(username);
@@ -49,13 +28,13 @@ export class AddModNoteAction extends ActionBase {
         }
 
         // If the Redis key doesn't exist, they may still have a mod note.
-        const modNotes = await this.context.reddit.getModNotes({
-            subreddit: await this.subredditName(),
+        const modNotes = await reddit.getModNotes({
+            subreddit: context.subredditName,
             user: username,
             filter: "NOTE",
         }).all();
 
-        const modNoteExists = modNotes.some(note => note.operator.name === this.context.appSlug);
+        const modNoteExists = modNotes.some(note => note.operator.name === context.appSlug);
         if (modNoteExists) {
             await this.setModNoteAddedRecord(username);
         }
@@ -73,8 +52,8 @@ export class AddModNoteAction extends ActionBase {
         let modNote = this.settings[ModNoteSetting.ModNoteMessage] as string;
         modNote = modNote.replaceAll("{{permalink}}", shortenedPermalink(target.permalink));
 
-        await this.context.reddit.addModNote({
-            subreddit: await this.subredditName(),
+        await reddit.addModNote({
+            subreddit: context.subredditName,
             user: target.authorName,
             note: modNote,
             label: "SPAM_WATCH",

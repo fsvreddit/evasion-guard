@@ -1,32 +1,12 @@
-import { Comment, Post, SettingsFormField } from "@devvit/public-api";
+import { Comment, Post, reddit } from "@devvit/web/server";
 import { ActionBase } from "./actionBase.js";
 
-enum RemovalSetting {
+export enum RemovalSetting {
     RemoveContent = "banEvasionRemoveContent",
     RemovalMessage = "removalMessage",
 }
 
 export class RemoveContentAction extends ActionBase {
-    override actionSettings: SettingsFormField = {
-        type: "group",
-        label: "Removal Options",
-        fields: [
-            {
-                type: "boolean",
-                name: RemovalSetting.RemoveContent,
-                label: "Remove content from users detected as evading bans",
-                helpText: "Only the comment or post that triggered the Ban Evasion detection will be removed.",
-                defaultValue: true,
-            },
-            {
-                type: "paragraph",
-                name: RemovalSetting.RemovalMessage,
-                label: "Removal message to reply to the content with",
-                helpText: "Removal messages will only be left if the above setting is turned on. Placeholder supported: {{username}}",
-            },
-        ],
-    };
-
     override actionEnabled () {
         return this.settings[RemovalSetting.RemoveContent] as boolean | undefined ?? false;
     }
@@ -41,7 +21,7 @@ export class RemoveContentAction extends ActionBase {
         let removalMessage = this.settings[RemovalSetting.RemovalMessage] as string | undefined;
         if (removalMessage) {
             removalMessage = removalMessage.replaceAll("{{username}}", target.authorName);
-            const newComment = await this.context.reddit.submitComment({
+            const newComment = await reddit.submitComment({
                 id: target.id,
                 text: removalMessage,
             });

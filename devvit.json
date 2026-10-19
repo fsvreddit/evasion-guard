@@ -1,0 +1,171 @@
+{
+    "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+    "name": "evasion-guard",
+    "permissions": {
+        "reddit": true
+    },
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite build --watch"
+    },
+    "server": {
+        "dir": "dist/server",
+        "entry": "index.cjs"
+    },
+    "settings": {
+        "subreddit": {
+            "group_DetectionSettings": {
+                "type": "group",
+                "label": "Ban Evasion Detection Settings",
+                "fields": {
+                    "actionThresholdValue": {
+                        "type": "number",
+                        "label": "Max account age",
+                        "helpText": "This app will only take action on users younger than this age. Set to 0 to take action at any age.",
+                        "defaultValue": 0
+                    },
+                    "actionThresholdUnit": {
+                        "type": "select",
+                        "label": "Max account age unit",
+                        "options": [
+                            { "label": "Day", "value": "day" },
+                            { "label": "Week", "value": "week" },
+                            { "label": "Month", "value": "month" },
+                            { "label": "Year", "value": "year" }
+                        ],
+                        "defaultValue": "day"
+                    },
+                    "autoApproveAfterUnban": {
+                        "type": "boolean",
+                        "label": "Auto-approve posts and comments after recent unban",
+                        "helpText": "Ban Evasion detections after recent unbans are likely false positives. Select this option to approve content flagged for ban evasion within a week of an unban action.",
+                        "defaultValue": false
+                    },
+                    "ignoreApprovedUsers": {
+                        "type": "boolean",
+                        "label": "Ignore users who are approved submitters",
+                        "defaultValue": false
+                    },
+                    "usersToIgnore": {
+                        "type": "string",
+                        "label": "A list of named users to ignore",
+                        "helpText": "Comma separated, not case sensitive",
+                        "defaultValue": ""
+                    },
+                    "ignoreAfterContentApproval": {
+                        "type": "boolean",
+                        "label": "Ignore and approve content from users who have had content flagged by this app re-approved",
+                        "helpText": "Only approves content specifically flagged for ban evasion, not content more generally",
+                        "defaultValue": false
+                    }
+                }
+            },
+            "group_BanOptions": {
+                "type": "group",
+                "label": "Ban Options",
+                "fields": {
+                    "banEvasionBanUsers": {
+                        "type": "boolean",
+                        "label": "Ban users detected for ban evasion",
+                        "defaultValue": false
+                    },
+                    "banReason": {
+                        "type": "string",
+                        "label": "Ban reason (visible on 'banned users' page).",
+                        "helpText": "Supports placeholder: {{permalink}}",
+                        "defaultValue": "Ban evasion"
+                    },
+                    "banMessage": {
+                        "type": "string",
+                        "label": "Ban message to send to user",
+                        "helpText": "Supports placeholders: {{username}}, {{permalink}}",
+                        "defaultValue": "Ban evasion"
+                    },
+                    "banDuration": {
+                        "type": "number",
+                        "label": "Ban duration (in days)",
+                        "helpText": "Set to 0 for a permanent ban.",
+                        "defaultValue": 0,
+                        "validationEndpoint": "/internal/validators/validate-ban-duration"
+                    },
+                    "banIncludeTargetContentAsPrivateModNote": {
+                        "type": "boolean",
+                        "label": "Include a private mod note on the ban modmail with a copy of the content that triggered the ban evasion detection",
+                        "defaultValue": false
+                    }
+                }
+            },
+            "group_RemoveContent": {
+                "type": "group",
+                "label": "Removal Options",
+                "fields": {
+                    "banEvasionRemoveContent": {
+                        "type": "boolean",
+                        "label": "Remove content from users detected as evading bans",
+                        "helpText": "Only the comment or post that triggered the Ban Evasion detection will be removed.",
+                        "defaultValue": true
+                    },
+                    "removalMessage": {
+                        "type": "paragraph",
+                        "label": "Removal message to reply to the content with",
+                        "helpText": "Removal messages will only be left if the above setting is turned on. Placeholder supported: {{username}}"
+                    }
+                }
+            },
+            "group_ModmailOptions": {
+                "type": "group",
+                "label": "Modmail Options",
+                "fields": {
+                    "modmailNotification": {
+                        "type": "select",
+                        "label": "Send modmail notification",
+                        "options": [
+                            { "label": "No notification", "value": "none" },
+                            { "label": "Inbox", "value": "inbox" },
+                            { "label": "Mod Notifications", "value": "modNotifications" }
+                        ]
+                    }
+                }
+            },
+            "group_ModNoteSettings": {
+                "type": "group",
+                "label": "Mod Note Options",
+                "fields": {
+                    "enableModNotes": {
+                        "type": "boolean",
+                        "label": "Add Mod Note",
+                        "helpText": "Adds a mod note to the user when a user is flagged for ban evasion.",
+                        "defaultValue": false
+                    },
+                    "modNoteMessage": {
+                        "type": "string",
+                        "label": "Mod Note Message",
+                        "helpText": "Message to add as a mod note when a user is flagged for ban evasion. Supports placeholder {{permalink}}",
+                        "defaultValue": "User was flagged by Reddit's ban evasion detection system."
+                    }
+                }
+            }
+        }
+    },
+    "triggers": {
+        "onAppInstall": "/internal/triggers/app-install",
+        "onAppUpgrade": "/internal/triggers/app-upgrade",
+        "onModAction": "/internal/triggers/mod-action"
+    },
+    "scheduler": {
+        "tasks": {
+            "addAdditionalDetailsToModmailJob": {
+                "endpoint": "/internal/tasks/add-additional-details-to-modmail"
+            },
+            "cleanupJob": {
+                "endpoint": "/internal/tasks/cleanup"
+            },
+            "handleRedditActions": {
+                "endpoint": "/internal/tasks/handle-reddit-actions"
+            },
+            "storeRecentUnbansAfterInstall": {
+                "endpoint": "/internal/tasks/store-recent-unbans-after-install"
+            }
+        }
+    }
+}

@@ -1,15 +1,14 @@
-import { JSONObject, ScheduledJobEvent, TriggerContext, User } from "@devvit/public-api";
-import { ModAction } from "@devvit/protos";
-import { isCommentId } from "@devvit/public-api/types/tid.js";
+import { context, reddit, redis, scheduler, settings, TaskRequest, User } from "@devvit/web/server";
+import { isT1, OnModActionRequest, T1, T3 } from "@devvit/web/shared";
 import { addDays, addHours, addMinutes, addMonths, addSeconds, subDays, subMonths, subWeeks, subYears } from "date-fns";
-import { DateUnit, Setting } from "./settings.js";
-import { getPostOrCommentById } from "./utility.js";
+import { DateUnit, Setting } from ".";
 import { SchedulerJob } from "./constants.js";
 import { ALL_ACTIONS } from "./actions/actions.js";
 import { isUserAllowlisted, setAllowListForUser } from "./cleanupTasks.js";
-import { hasTriggerBeenHandled } from "@fsvreddit/fsv-devvit-helpers";
+import { getPostOrCommentById, hasEventBeenHandled } from "@fsvreddit/fsv-devvit-web-helpers";
+import { HandleRedditActionsJobData } from "../tasks";
 
-export async function isModOfSub (username: string | undefined, context: TriggerContext, force?: boolean): Promise<boolean> {
+export async function isModOfSub (username: string | undefined, force?: boolean): Promise<boolean> {
     if (!username) {
         return false;
     }
@@ -24,23 +23,23 @@ export async function isModOfSub (username: string | undefined, context: Trigger
 
     const redisKey = `ismod~${username}`;
 
-    const cachedValue = await context.redis.get(redisKey);
+    const cachedValue = await redis.get(redisKey);
     if (!force && cachedValue !== undefined) {
         return JSON.parse(cachedValue) as boolean;
     }
 
-    const moderators = await context.reddit.getModerators({
-        subredditName: context.subredditName ?? await context.reddit.getCurrentSubredditName(),
+    const moderators = await reddit.getModerators({
+        subredditName: context.subredditName,
         username,
     }).all();
 
     const isMod = moderators.length > 0;
-    await context.redis.set(redisKey, JSON.stringify(isMod), { expiration: addDays(new Date(), 1) });
+    await redis.set(redisKey, JSON.stringify(isMod), { expiration: addDays(new Date(), 1) });
     return isMod;
 }
 
-export async function handleModAction (event: ModAction, context: TriggerContext) {
-    if (await hasTriggerBeenHandled(context.redis, `modAction:${event.moderator?.name}:${event.action}:${event.actionedAt?.getTime()}`)) {
+export async function handleModAction (event: OnModActionRequest) {
+    if (await hasEventBeenHandled(`modAction:${event.moderator?.name}:${event.action}:${event.actionedAt}`)) {
         console.log(`Duplicate mod action trigger for ${event.moderator?.name} and action ${event.action}`);
         return;
     }
@@ -48,26 +47,26 @@ export async function handleModAction (event: ModAction, context: TriggerContext
     switch (event.action) {
         case "removecomment":
         case "removelink":
-            await handleRemoveItemAction(event, context);
+            await handleRemoveItemAction(event);
             break;
         case "unbanuser":
-            await handleUnbanAction(event, context);
+            await handleUnbanAction(event);
             break;
         case "approvecomment":
         case "approvelink":
-            await handleApproveContent(event, context);
+            await handleApproveContent(event);
             break;
         case "acceptmoderatorinvite":
         case "addmoderator":
         case "removemoderator":
-            await isModOfSub(event.targetUser?.name, context, true);
+            await isModOfSub(event.targetUser?.name, true);
             break;
     }
 }
 
-export async function handleRemoveItemAction (event: ModAction, context: TriggerContext) {
+export async function handleRemoveItemAction (event: OnModActionRequest) {
     try {
-        if (await isModOfSub(event.moderator?.name, context)) {
+        if (await isModOfSub(event.moderator?.name)) {
             return;
         }
     } catch (e) {
@@ -78,11 +77,11 @@ export async function handleRemoveItemAction (event: ModAction, context: Trigger
         return;
     }
 
-    let targetId: string | undefined;
+    let targetId: T1 | T3 | undefined;
     if (event.action === "removecomment") {
-        targetId = event.targetComment?.id;
+        targetId = event.targetComment?.id as T1 | undefined;
     } else if (event.action === "removelink") {
-        targetId = event.targetPost?.id;
+        targetId = event.targetPost?.id as T3 | undefined;
     }
 
     if (!targetId) {
@@ -91,37 +90,36 @@ export async function handleRemoveItemAction (event: ModAction, context: Trigger
 
     console.log(`${targetId}: Detected a ${event.action} action from reddit.`);
     const redisKey = `alreadyChecked~${targetId}`;
-    const alreadyChecked = await context.redis.get(redisKey);
+    const alreadyChecked = await redis.get(redisKey);
     if (alreadyChecked) {
         console.log(`${targetId}: Duplicate trigger`);
         return;
     }
 
-    await context.scheduler.runJob({
+    await scheduler.runJob<HandleRedditActionsJobData>({
         name: SchedulerJob.HandleRedditActions,
         data: {
             targetId,
-            subredditName: event.subreddit.name,
             jobGuid: crypto.randomUUID(),
         },
         runAt: addSeconds(new Date(), 10), // 10 seconds to give async updates time to finish.
     });
 
-    await context.redis.set(redisKey, "true", { expiration: addHours(new Date(), 1) });
+    await redis.set(redisKey, "true", { expiration: addHours(new Date(), 1) });
 }
 
-export async function handleUnbanAction (event: ModAction, context: TriggerContext) {
+export async function handleUnbanAction (event: OnModActionRequest) {
     const targetUser = event.targetUser?.name;
     if (!targetUser || targetUser === "[deleted]") {
         return;
     }
 
     const unbanDate = event.actionedAt ?? new Date();
-    await context.redis.set(`unbanned~${targetUser}`, new Date().getTime().toString(), { expiration: addDays(unbanDate, 7) });
+    await redis.set(`unbanned~${targetUser}`, new Date().getTime().toString(), { expiration: addDays(unbanDate, 7) });
     console.log(`${targetUser}: User unbanned, setting Redis key.`);
 }
 
-export async function handleApproveContent (event: ModAction, context: TriggerContext) {
+export async function handleApproveContent (event: OnModActionRequest) {
     const authorName = event.targetUser?.name;
     if (!authorName) {
         return;
@@ -138,33 +136,28 @@ export async function handleApproveContent (event: ModAction, context: TriggerCo
         return;
     }
 
-    if (!await context.redis.exists(`banevasiontarget~${targetId}`)) {
+    if (!await redis.exists(`banevasiontarget~${targetId}`)) {
         return;
     }
 
     // Store in the allowlisted users set, with a score indicating next cleanup due.
-    await setAllowListForUser(authorName, context);
+    await setAllowListForUser(authorName);
 }
 
-export async function handleRedditActions (event: ScheduledJobEvent<JSONObject | undefined>, context: TriggerContext) {
-    const jobGuid = event.data?.jobGuid as string | undefined;
-    if (jobGuid && await hasTriggerBeenHandled(context.redis, `handleRedditActions:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
+export async function handleRedditActions (event: TaskRequest<HandleRedditActionsJobData>) {
+    const jobGuid = event.data.jobGuid as string | undefined;
+    if (jobGuid && await hasEventBeenHandled(`handleRedditActions:${jobGuid}`, { expiration: addMinutes(new Date(), 5) })) {
         console.warn(`Duplicate handleRedditActions job for jobGuid ${jobGuid}`);
         return;
     }
 
-    const targetId = event.data?.targetId as string | undefined;
-    const subredditName = event.data?.subredditName as string | undefined;
+    const targetId = event.data.targetId;
 
-    if (!targetId || !subredditName) {
-        return;
-    }
-
-    const settings = await context.settings.getAll();
+    const appSettings = await settings.getAll();
 
     let atLeastOneActionEnabled = false;
     for (const Action of ALL_ACTIONS) {
-        const action = new Action(context, settings);
+        const action = new Action(appSettings);
         if (action.actionEnabled()) {
             atLeastOneActionEnabled = true;
             break;
@@ -176,10 +169,10 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
         return;
     }
 
-    const modLog = await context.reddit.getModerationLog({
-        subredditName,
+    const modLog = await reddit.getModerationLog({
+        subredditName: context.subredditName,
         moderatorUsernames: ["reddit"],
-        type: isCommentId(targetId) ? "removecomment" : "removelink",
+        type: isT1(targetId) ? "removecomment" : "removelink",
         limit: 100,
     }).all();
 
@@ -202,9 +195,9 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
         return;
     }
 
-    const target = await getPostOrCommentById(targetId, context);
+    const target = await getPostOrCommentById(targetId);
 
-    const userAllowList = settings[Setting.UsersToIgnore] as string | undefined ?? "";
+    const userAllowList = appSettings[Setting.UsersToIgnore] as string | undefined ?? "";
     const usersToIgnore = userAllowList.split(",").map(username => username.toLowerCase().trim());
 
     if (usersToIgnore.includes(target.authorName.toLowerCase())) {
@@ -212,33 +205,33 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
         return;
     }
 
-    const userPreviouslyUnbanned = await context.redis.get(`unbanned~${target.authorName}`);
+    const userPreviouslyUnbanned = await redis.get(`unbanned~${target.authorName}`);
     if (userPreviouslyUnbanned) {
         console.log(`${targetId}: User ${target.authorName} was recently unbanned so treating this as a false positive.`);
-        if (settings[Setting.AutoApproveAfterUnban]) {
-            await context.reddit.approve(targetId);
+        if (appSettings[Setting.AutoApproveAfterUnban]) {
+            await reddit.approve(targetId);
             console.log(`${targetId}: Approved due to recent unban.`);
         }
         return;
     }
 
-    if (settings[Setting.AutoIgnoreUsersAfterContentApproval]) {
-        const userAllowlisted = await isUserAllowlisted(target.authorName, context);
+    if (appSettings[Setting.AutoIgnoreUsersAfterContentApproval]) {
+        const userAllowlisted = await isUserAllowlisted(target.authorName);
         if (userAllowlisted) {
-            await context.reddit.approve(targetId);
+            await reddit.approve(targetId);
             console.log(`${targetId}: Author ${target.authorName} is allowlisted
                  via prior approval`);
             return;
         }
     }
 
-    const actionThresholdValue = settings[Setting.ActionThresholdValue] as number;
-    const [actionThresholdUnit] = settings[Setting.ActionThresholdUnit] as string[];
+    const actionThresholdValue = appSettings[Setting.ActionThresholdValue] as number;
+    const [actionThresholdUnit] = appSettings[Setting.ActionThresholdUnit] as DateUnit[];
 
     if (actionThresholdValue && target.authorId) {
         let user: User | undefined;
         try {
-            user = await context.reddit.getUserById(target.authorId);
+            user = await reddit.getUserById(target.authorId);
         } catch {
             //
         }
@@ -247,15 +240,16 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
             console.log(`${targetId}: User ${target.authorName} is suspended or shadowbanned.`);
             return;
         }
-        const minimumAge = getMinimumAge(actionThresholdValue, actionThresholdUnit as DateUnit);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const minimumAge = getMinimumAge(actionThresholdValue, actionThresholdUnit!);
         if (user.createdAt < minimumAge) {
             console.log(`${targetId}: User ${target.authorName} is too old to take action on.`);
             return;
         }
     }
 
-    if (settings[Setting.IgnoreApprovedSubmitters]) {
-        const approvedUsers = await context.reddit.getApprovedUsers({
+    if (appSettings[Setting.IgnoreApprovedSubmitters]) {
+        const approvedUsers = await reddit.getApprovedUsers({
             subredditName: target.subredditName,
             username: target.authorName,
         }).all();
@@ -269,14 +263,14 @@ export async function handleRedditActions (event: ScheduledJobEvent<JSONObject |
     const promises: Promise<unknown>[] = [];
 
     for (const Action of ALL_ACTIONS) {
-        const action = new Action(context, settings);
+        const action = new Action(appSettings);
         if (!action.actionEnabled()) {
             continue;
         }
         promises.push(action.execute(target));
     }
 
-    promises.push(context.redis.set(`banevasiontarget~${targetId}`, new Date().getTime().toString(), { expiration: addMonths(new Date(), 3) }));
+    promises.push(redis.set(`banevasiontarget~${targetId}`, new Date().getTime().toString(), { expiration: addMonths(new Date(), 3) }));
 
     await Promise.all(promises);
 }

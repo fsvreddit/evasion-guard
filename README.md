@@ -10,6 +10,10 @@ This app is open source. [You can find the source on Github here](https://github
 
 ## Change log
 
+### v1.4.10
+
+* Update app to use the Devvit Web framework, no user facing changes
+
 ### v1.4.9
 
 * Further mitigations against duplicate actions
